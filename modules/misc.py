@@ -248,8 +248,7 @@ def print_with_progress(logger, current, total, header, description="Processing"
         SPINNER.set_line_func(line_func)
         SPINNER.start()
 
-    if total == -1:
-        SPINNER = ContinuousSpinner(interval=0.15)
+    if total == -1 and SPINNER is not None:
         final_line = (
             f"{GREY}[UTC {get_timestamp()}] [{header}]{RESET} "
             f"{description} {DONE}{CROSS}{RESET} {' ' * ((len({str(total)}) * 2) + 8)}"
