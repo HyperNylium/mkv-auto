@@ -156,8 +156,7 @@ Make sure that the media folder names in `user.ini` are named identically to you
    `Name: Send to MKV-Auto`  
    `Notification Triggers`  
    `☑ On File Import`  
-   `☑ On File Upgrade`  
-   `☑ On Movie Added`   
+   `☑ On File Upgrade`
    `Path: /config/send-to-mkv-auto.sh`
 6. Hit `Test` and then `Save` to save the custom script integration.
 
@@ -176,8 +175,7 @@ To process existing movies, simply delete them in Radarr (without deleting files
    `Name: Send to MKV-Auto`  
    `Notification Triggers`  
    `☑ On File Import`  
-   `☑ On File Upgrade`  
-   `☑ On Series Add`   
+   `☑ On File Upgrade`
    `Path: /config/send-to-mkv-auto.sh`
 6. Hit `Test` and then `Save` to save the custom script integration.
 

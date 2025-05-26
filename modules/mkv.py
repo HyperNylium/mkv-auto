@@ -689,7 +689,7 @@ def extract_subs_in_mkv_process_worker(debug, input_file, dirpath, internal_thre
     return subtitle_files
 
 
-def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_list, errored_subs):
+def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_list, errored_subs_bool):
     sub_files = [
         [f for f in sublist if isinstance(f, str) and f.endswith(('.mkv', '.srt', '.sup', '.ass', '.sub'))]
         for sublist in subtitle_files_list
@@ -721,7 +721,7 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
     # Reduced threads to not overwhelm the system.
     max_worker_threads, memory_per_thread, max_mem_allowed = get_max_ocr_threads()
 
-    if errored_subs:
+    if errored_subs_bool:
         max_worker_threads = 1
         memory_per_thread = max_mem_allowed
 
@@ -741,6 +741,8 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
                                    sub_files[index], memory_per_thread): index for index, input_file in enumerate(input_files)}
         for completed_count, future in enumerate(concurrent.futures.as_completed(futures), 1):
             try:
+                if not disable_print:
+                    print_with_progress(logger, completed_count, total_files, header=header, description=description)
                 index = futures[future]
                 ready_tracks, output_subtitles, all_replacements, errored_subs, missing_subs_langs, main_audio_track_langs = future.result()
                 if ready_tracks is not None:
@@ -772,12 +774,11 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
                 traceback_str = ''.join(traceback.format_tb(e.__traceback__))
                 print_no_timestamp(logger, f"\n{RED}[TRACEBACK]{RESET}\n{traceback_str}")
                 raise
-
-            if not disable_print:
-                if errored_subs:
-                    print_with_progress(logger, completed_count, -1, header=header, description=description)
-                else:
-                    print_with_progress(logger, completed_count, total_files, header=header, description=description)
+        if not disable_print:
+            if [item for list in all_errored_subs for item in list]:
+                print_with_progress(logger, completed_count, -1, header=header, description=description)
+            elif not all_errored_subs:
+                print_with_progress(logger, completed_count, total_files, header=header, description=description)
 
     all_replacements_list_count = len([item for list in all_replacements_list for item in list])
 
@@ -796,9 +797,15 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
 
     all_errored_subs_count = len([item for list in all_errored_subs for item in list])
     if all_errored_subs_count:
-        print()
-        custom_print(logger, f"{GREY}[SUBTITLES]{RESET} {all_errored_subs_count} "
-                             f"{print_multi_or_single(all_errored_subs_count, 'subtitle')} failed to be converted.")
+        if errored_subs_bool:
+            verb = 'were' if all_errored_subs_count > 1 else 'was'
+            print()
+            custom_print_no_newline(logger, f"{GREY}[SUBTITLES]{RESET} {all_errored_subs_count} "
+                                 f"{print_multi_or_single(all_errored_subs_count, 'subtitle')} {verb} not able to be converted.")
+        elif not errored_subs_bool:
+            print()
+            custom_print(logger, f"{GREY}[SUBTITLES]{RESET} {all_errored_subs_count} "
+                                 f"{print_multi_or_single(all_errored_subs_count, 'subtitle')} failed to be converted.")
 
         errored_subs_print = []
         for errored_sub in all_errored_subs:

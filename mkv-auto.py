@@ -265,11 +265,11 @@ def mkv_auto(args):
                                                                               total_external_subs,
                                                                               all_missing_subs_langs)
 
-                    all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(subtitle_files_to_process, all_downloaded_subs, fillvalue=[])]
                     all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(all_subtitle_files, new_subtitle_files_to_process, fillvalue=[])]
+                    all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(all_subtitle_files, all_downloaded_subs, fillvalue=[])]
 
-                    subtitle_files_to_process = [[*(a or []), *(b or [])] for a, b in zip_longest(all_downloaded_subs, subtitle_files_to_process, fillvalue=[])]
                     subtitle_files_to_process = [[*(a or []), *(b or [])] for a, b in zip_longest(subtitle_files_to_process, new_subtitle_files_to_process, fillvalue=[])]
+                    subtitle_files_to_process = [[*(a or []), *(b or [])] for a, b in zip_longest(all_downloaded_subs, subtitle_files_to_process, fillvalue=[])]
 
                     if all_downloaded_subs:
                         # Filter the nested lists to only include .srt files
