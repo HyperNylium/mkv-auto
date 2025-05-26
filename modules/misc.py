@@ -515,7 +515,7 @@ def flatten_season_folders(root_dir):
                     os.rmdir(full_path)
 
 
-def flatten_directories(directory):
+def flatten_directories(logger, directory):
     marker_start = "--.--"
     marker_end = "__.__"
     path_separator = "___"
@@ -527,6 +527,8 @@ def flatten_directories(directory):
         for name in files:
             source = os.path.join(root, name)
             rel_path = os.path.relpath(root, directory)
+
+            log_debug(logger, f"[DEBUG] File in input folder: '{name}'")
 
             # Always encode the path, even for root-level files
             if rel_path == ".":

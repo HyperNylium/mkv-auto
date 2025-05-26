@@ -127,7 +127,7 @@ def mkv_auto(args):
         extract_archives(logger, temp_dir)
         flatten_season_folders(temp_dir)
         process_extras(temp_dir)
-        flatten_directories(temp_dir)
+        flatten_directories(logger, temp_dir)
 
         convert_all_videos_to_mkv(logger, debug, temp_dir, args.silent)
         rename_others_file_to_folder(temp_dir)
@@ -265,6 +265,7 @@ def mkv_auto(args):
                                                                               total_external_subs,
                                                                               all_missing_subs_langs)
 
+                    all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(all_subtitle_files, subtitle_files_to_process, fillvalue=[])]
                     all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(all_subtitle_files, new_subtitle_files_to_process, fillvalue=[])]
                     all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(all_subtitle_files, all_downloaded_subs, fillvalue=[])]
 
