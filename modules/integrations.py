@@ -96,13 +96,13 @@ def update_sonarr_path(logger, episode_name, new_folder_name):
     headers = {'X-Api-Key': sonarr_api_key}
     shows = requests.get(f'{sonarr_url}/api/v3/series', headers=headers).json()
 
-    # Try to extract series name and year
-    match = re.match(r'(.+?)\s*\((\d{4})\)?\s*-\s*S\d+E\d+', episode_name, re.IGNORECASE)
+    # Try to extract series name and optional year
+    match = re.match(r'(.+?)(?:\s*\((\d{4})\))?\s*-?\s*S\d+E\d+', episode_name, re.IGNORECASE)
     if not match:
-        raise ValueError("[SONARR] Invalid format. Expected: 'TV Show (2010) - S01E01'")
+        raise ValueError("[SONARR] Invalid format. Expected: 'TV Show (2010) - S01E01' or 'TV Show S01E01'")
 
     series_name = match.group(1).strip()
-    series_year = int(match.group(2))
+    series_year = int(match.group(2)) if match.group(2) else None
 
     best_show = None
     highest_score = 0
