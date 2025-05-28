@@ -265,8 +265,7 @@ def mkv_auto(args):
                                                                               total_external_subs,
                                                                               all_missing_subs_langs)
 
-                    all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(all_subtitle_files, subtitle_files_to_process, fillvalue=[])]
-                    all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(all_subtitle_files, new_subtitle_files_to_process, fillvalue=[])]
+                    all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(subtitle_files_to_process, new_subtitle_files_to_process, fillvalue=[])]
                     all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(all_subtitle_files, all_downloaded_subs, fillvalue=[])]
 
                     subtitle_files_to_process = [[*(a or []), *(b or [])] for a, b in zip_longest(subtitle_files_to_process, new_subtitle_files_to_process, fillvalue=[])]

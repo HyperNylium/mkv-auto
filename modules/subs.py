@@ -749,7 +749,6 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
                 final_subtitle = 'ERROR'
             elif not is_valid_srt(final_subtitle):
                 final_subtitle = 'ERROR'
-                language = 'ERROR'
                 name = 'ERROR'
                 forced = 'ERROR'
                 track_id = 'ERROR'
