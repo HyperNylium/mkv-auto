@@ -112,7 +112,7 @@ def update_sonarr_path(logger, episode_name, new_folder_name):
 
         # Optional year boost
         show_year = show.get('year')
-        if show_year:
+        if show_year and series_year:
             year_diff = abs(series_year - show_year)
             if year_diff == 0:
                 score += 10

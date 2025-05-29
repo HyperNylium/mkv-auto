@@ -127,13 +127,14 @@ def mkv_auto(args):
         extract_archives(logger, temp_dir)
         flatten_season_folders(temp_dir)
         process_extras(temp_dir)
+
+        if remove_samples:
+            remove_sample_files_and_dirs(temp_dir)
+
         flatten_directories(logger, temp_dir)
 
         convert_all_videos_to_mkv(logger, debug, temp_dir, args.silent)
         rename_others_file_to_folder(temp_dir)
-
-        if remove_samples:
-            remove_sample_files_and_dirs(temp_dir)
 
         fix_episodes_naming(temp_dir)
         remove_ds_store(temp_dir)
@@ -160,12 +161,11 @@ def mkv_auto(args):
             Main loop
             """
 
-            # Ignore files that start with a dot
             filenames = [f for f in filenames if not f.startswith('.')]
-            filenames_covers = [f for f in filenames if f.lower().endswith(('.png', '.jpg'))]
-            # Extract the directory path relative to the input directory
+            filenames_covers = [f for f in filenames if f.lower().endswith(('.png', '.jpg'))
+                                and any(f.lower() == name for name in poster_base_names)]
+
             relative_dir_path = os.path.relpath(dirpath, temp_dir)
-            # Split the relative path into individual directories
             all_dirnames = relative_dir_path.split(os.sep)
 
             total_external_subs = []

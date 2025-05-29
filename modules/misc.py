@@ -100,6 +100,17 @@ excluded_tags = [
     "interview", "-scene", "-short", "-trailer", "-other"
 ]
 
+# Source:
+# https://support.plex.tv/articles/200220677-local-media-assets-movies/
+# https://support.plex.tv/articles/200220717-local-media-assets-tv-shows/
+poster_base_names = [
+    "cover.jpg", "cover.png", "cover.jpeg", "cover.tbn",
+    "default.jpg", "default.png", "default.jpeg", "default.tbn",
+    "folder.jpg", "folder.png", "folder.jpeg", "folder.tbn",
+    "movie.jpg", "movie.png", "movie.jpeg", "movie.tbn",
+    "poster.jpg", "poster.png", "poster.jpeg", "poster.tbn"
+]
+
 
 def process_extras(input_folder):
     # Recursively walk through the directories, skipping those starting with '.'
@@ -119,7 +130,7 @@ def process_extras(input_folder):
             # Check if the filename ends with any of the excluded tags
             if any(base.lower().endswith(tag) for tag in excluded_tags):
                 extras_files.append(f)
-            elif ext.lower() in ('.jpg', '.png'):
+            elif ext.lower() in ('.jpg', '.png') and any(base.lower() == name for name in poster_base_names):
                 extras_files.append(f)
             else:
                 normal_files.append(f)
