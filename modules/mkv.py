@@ -702,6 +702,7 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
     all_errored_subs = [None] * total_files
     all_missing_subs_langs = [None] * total_files
     main_audio_track_langs_list = [None] * total_files
+    subtitle_tracks_all = [None] * total_files
 
     disable_print = False
 
@@ -741,11 +742,13 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
                 if not disable_print and completed_count < total_files:
                     print_with_progress(logger, completed_count, total_files, header=header, description=description)
                 index = futures[future]
-                ready_tracks, output_subtitles, all_replacements, errored_subs, missing_subs_langs, main_audio_track_langs = future.result()
+                ready_tracks, output_subtitles, subtitles_all, all_replacements, errored_subs, missing_subs_langs, main_audio_track_langs = future.result()
                 if ready_tracks is not None:
                     all_ready_subtitle_tracks[index] = ready_tracks
                 if output_subtitles is not None:
                     subtitle_tracks_to_be_processed[index] = output_subtitles
+                if subtitles_all is not None:
+                    subtitle_tracks_all[index] = subtitles_all
                 if all_replacements is not None:
                     all_replacements_list[index] = all_replacements
                 if errored_subs is not None:
@@ -813,7 +816,7 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
         for index, sub in enumerate(errored_subs_print):
             log_debug(logger, f"[OCR ERROR] '{sub}'")
 
-    return (all_ready_subtitle_tracks, subtitle_tracks_to_be_processed,
+    return (all_ready_subtitle_tracks, subtitle_tracks_to_be_processed, subtitle_tracks_all,
             all_missing_subs_langs, all_errored_subs, main_audio_track_langs_list)
 
 
@@ -837,7 +840,7 @@ def convert_to_srt_process_worker(debug, input_file, dirpath, internal_threads, 
         all_subtitles, errored_ass_subs, missing_subs_langs = convert_ass_to_srt(subtitle_files_to_process, main_audio_track_lang)
         subtitle_files_to_process = all_subtitles
 
-    (output_subtitles, updated_subtitle_languages, all_subs_track_ids,
+    (output_subtitles, subtitles_all, updated_subtitle_languages, all_subs_track_ids,
      all_subs_track_names, all_subs_track_forced, updated_sub_filetypes,
      all_replacements, errored_ocr_subs, missing_subs_langs) = ocr_subtitles(
         internal_threads, memory_per_thread, debug, subtitle_files_to_process, main_audio_track_lang)
@@ -851,7 +854,7 @@ def convert_to_srt_process_worker(debug, input_file, dirpath, internal_threads, 
         'sub_ids': all_subs_track_ids,
         'sub_names': all_subs_track_names,
         'sub_forced': all_subs_track_forced
-    }, output_subtitles, all_replacements, errored_subs, missing_subs_langs, main_audio_track_lang
+    }, output_subtitles, subtitles_all, all_replacements, errored_subs, missing_subs_langs, main_audio_track_lang
 
 
 def get_subtitle_tracks_metadata_for_repack(logger, subtitle_files_list):

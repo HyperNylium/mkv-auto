@@ -212,6 +212,7 @@ def mkv_auto(args):
             all_subtitle_files = []
             all_downloaded_subs = []
             subtitle_files_to_process = []
+            subtitle_files_all = []
 
             need_processing_audio, need_processing_subs, all_missing_subs_langs = trim_audio_in_mkv_files(logger, debug, filenames_mkv_only, dirpath)
             audio_tracks_to_be_merged, subtitle_tracks_to_be_merged = generate_audio_tracks_in_mkv_files(logger, debug, filenames_mkv_only, dirpath, need_processing_audio)
@@ -245,15 +246,16 @@ def mkv_auto(args):
                         resync_sub_process(logger, debug, filenames_mkv_only, dirpath, subtitle_files)
 
                 if all_subtitle_files and download_missing_subs.lower() != 'override':
-                    (subtitle_tracks_to_be_merged, subtitle_files_to_process,
+                    (subtitle_tracks_to_be_merged, subtitle_files_to_process, subtitle_files_all,
                      all_missing_subs_langs, errored_ocr_list, main_audio_track_langs) = convert_to_srt_process(logger, debug, filenames_mkv_only, dirpath, all_subtitle_files, False)
 
+                # Additional processing if any OCR subtitles were to fail
                 if (not all(sub == ['none'] or sub == [''] or sub == [] for sub in all_missing_subs_langs)
                         and any(sub for sub in errored_ocr_list)):
 
                     custom_print_no_newline(logger, f"{GREY}[SUBTITLES]{RESET} Limiting simultaneous OCR workers to 1.")
 
-                    a, new_subtitle_files_to_process, all_missing_subs_langs, b, c = convert_to_srt_process(logger, debug,
+                    a, new_subtitle_files_to_process, d, all_missing_subs_langs, b, c = convert_to_srt_process(logger, debug,
                                                                                                             filenames_mkv_only,
                                                                                                             dirpath,
                                                                                                             errored_ocr_list,
@@ -265,7 +267,7 @@ def mkv_auto(args):
                                                                               total_external_subs,
                                                                               all_missing_subs_langs)
 
-                    all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(subtitle_files_to_process, new_subtitle_files_to_process, fillvalue=[])]
+                    all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(subtitle_files_all, new_subtitle_files_to_process, fillvalue=[])]
                     all_subtitle_files = [[*(a or []), *(b or [])] for a, b in zip_longest(all_subtitle_files, all_downloaded_subs, fillvalue=[])]
 
                     subtitle_files_to_process = [[*(a or []), *(b or [])] for a, b in zip_longest(subtitle_files_to_process, new_subtitle_files_to_process, fillvalue=[])]

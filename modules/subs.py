@@ -608,6 +608,7 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
 
     # Initialize lists for the structured results
     output_subtitles = []
+    subtitles_all = []
     updated_subtitle_languages = []
     all_track_ids = []
     all_track_names = []
@@ -628,6 +629,7 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
             if keep_original_subtitles:
                 updated_sub_filetypes = updated_sub_filetypes + ['srt', original_extension]
                 output_subtitles = output_subtitles + [output_subtitle]
+                subtitles_all = subtitles_all + [output_subtitle, original_file]
                 updated_subtitle_languages = updated_subtitle_languages + [language, language]
                 all_track_ids = all_track_ids + [track_id, track_id]
                 if 'forced' in name.lower() or (forced == '1'):
@@ -641,6 +643,7 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
             else:
                 updated_sub_filetypes = updated_sub_filetypes + ['srt']
                 output_subtitles = output_subtitles + [output_subtitle]
+                subtitles_all = subtitles_all + [output_subtitle]
                 updated_subtitle_languages = updated_subtitle_languages + [language]
                 all_track_ids = all_track_ids + [track_id]
                 if 'forced' in name.lower() or (forced == '1'):
@@ -656,6 +659,7 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
                     missing_subs_langs.append(language)
             if name not in ('ERROR', 'SKIP'):
                 output_subtitles.append(original_file)
+                subtitles_all.append(original_file)
                 all_track_names.append(name)
             if original_extension not in ('ERROR', 'SKIP'):
                 updated_sub_filetypes.append(original_extension)
@@ -666,7 +670,7 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
             if forced not in ('ERROR', 'SKIP'):
                 all_track_forced.append(forced)
 
-    return (output_subtitles, updated_subtitle_languages, all_track_ids, all_track_names,
+    return (output_subtitles, subtitles_all, updated_subtitle_languages, all_track_ids, all_track_names,
             all_track_forced, updated_sub_filetypes, all_replacements, errored_ocr, missing_subs_langs)
 
 
