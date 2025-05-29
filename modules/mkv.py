@@ -716,9 +716,6 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
         else:
             disable_print = True
 
-    # Calculate number of workers and internal threads, floor divide by 1.7 as
-    # the OCR process uses multiple Tesseract processes internally.
-    # Reduced threads to not overwhelm the system.
     max_worker_threads, memory_per_thread, max_mem_allowed = get_max_ocr_threads()
 
     if errored_subs_bool:
