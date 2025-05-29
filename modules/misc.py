@@ -135,7 +135,7 @@ def process_extras(input_folder):
         identified_media = None
         for nf in normal_files:
             result = reformat_filename(nf, names_only=True, full_info_found=False, is_extra=False)
-            if result['media_type'] in ['movie', 'movie_hdr', 'tv_show', 'tv_show_hdr']:
+            if result['media_type'] in ['movie', 'movie_hdr', 'movie_4k', 'tv_show', 'tv_show_hdr', 'tv_show_4k']:
                 identified_media = result
                 break
 
@@ -724,14 +724,16 @@ def reformat_filename(filename, names_only, full_info_found, is_extra):
     # Regular expression to match movies
     movie_pattern = re.compile(r"^(.*?)[ .]*(?:\((\d{4})\)|(\d{4}))[ .]*(.*\.*)$", re.IGNORECASE)
 
-    hdr_pattern = re.compile(r"2160p| HDR|.HDR| 4K|.4K")
+    hdr_pattern = re.compile(r"2160p| HDR|.HDR")
+    pattern_4k = re.compile(r" 4K|.4K")
     non_hdr_pattern = re.compile(r"h264|x264", re.IGNORECASE)
 
     # Regular expression to detect editions: {edition-Director's Cut}, etc.
     edition_pattern = re.compile(r"{edition-(.*?)}", re.IGNORECASE)
 
-    # Check for HDR
+    # Check for patterns
     is_hdr = hdr_pattern.search(filename) and not non_hdr_pattern.search(filename)
+    is_4k = pattern_4k.search(filename) and not non_hdr_pattern.search(filename)
 
     # Try to find an edition in the filename
     edition_match = edition_pattern.search(filename)
@@ -753,8 +755,16 @@ def reformat_filename(filename, names_only, full_info_found, is_extra):
         year = tv_match1.group(3)
         season = int(tv_match1.group(4))
         episode = int(tv_match1.group(5))
-        folder = tv_hdr_folder if is_hdr else tv_folder
-        media_type = 'tv_show_hdr' if is_hdr else 'tv_show'
+
+        if is_hdr:
+            media_type = 'tv_show_hdr'
+            folder = tv_hdr_folder
+        elif is_4k:
+            media_type = 'tv_show_4k'
+            folder = tv_hdr_folder
+        else:
+            media_type = 'tv_show'
+            folder = tv_folder
 
         base_name = f"{showname} ({year})" if year else showname
         media_name = f"{base_name} ({edition_name})" if edition_name else base_name
@@ -789,8 +799,16 @@ def reformat_filename(filename, names_only, full_info_found, is_extra):
         year = tv_match2.group(3)
         season_start = int(tv_match2.group(4))
         season_end = int(tv_match2.group(5))
-        folder = tv_hdr_folder if is_hdr else tv_folder
-        media_type = 'tv_show_hdr' if is_hdr else 'tv_show'
+
+        if is_hdr:
+            media_type = 'tv_show_hdr'
+            folder = tv_hdr_folder
+        elif is_4k:
+            media_type = 'tv_show_4k'
+            folder = tv_hdr_folder
+        else:
+            media_type = 'tv_show'
+            folder = tv_folder
 
         base_name = f"{showname} ({year})" if year else showname
         media_name = f"{base_name} ({edition_name})" if edition_name else base_name
@@ -823,9 +841,16 @@ def reformat_filename(filename, names_only, full_info_found, is_extra):
         if not full_info_found:
             title = to_sentence_case(title)
         year = movie_match.group(2) or movie_match.group(3)
-        folder = movie_hdr_folder if is_hdr else movie_folder
 
-        media_type = 'movie_hdr' if is_hdr else 'movie'
+        if is_hdr:
+            media_type = 'movie_hdr'
+            folder = movie_hdr_folder
+        elif is_4k:
+            media_type = 'movie_4k'
+            folder = movie_hdr_folder
+        else:
+            media_type = 'movie'
+            folder = movie_folder
 
         # Build the base media name
         if year:
@@ -1056,7 +1081,7 @@ def return_media_info_string(filenames, type):
         # Determine if this is an extra by checking trailing excluded tags.
         is_extra = any(base.lower().endswith(tag) for tag in excluded_tags)
 
-        if media_type in ['tv_show', 'tv_show_hdr']:
+        if media_type in ['tv_show', 'tv_show_hdr', 'tv_show_4k']:
             season, episodes = extract_season_episode(filename)
             if is_extra:
                 if media_type == 'tv_show':
@@ -1071,7 +1096,7 @@ def return_media_info_string(filenames, type):
                         tv_shows_hdr[media_name][season].update(episodes)
                 else:
                     uncategorized.append(media_name)
-        elif media_type in ['movie', 'movie_hdr']:
+        elif media_type in ['movie', 'movie_hdr', 'movie_4k']:
             if is_extra:
                 if media_type == 'movie':
                     movie_extras[media_name].append(filename)
@@ -1166,7 +1191,7 @@ def print_media_info(logger, filenames):
         # Determine if this is an extra by checking trailing excluded tags.
         is_extra = any(base.lower().endswith(tag) for tag in excluded_tags)
 
-        if media_type in ['tv_show', 'tv_show_hdr']:
+        if media_type in ['tv_show', 'tv_show_hdr', 'tv_show_4k']:
             season, episodes = extract_season_episode(filename)
             if is_extra:
                 if media_type == 'tv_show':
@@ -1181,7 +1206,7 @@ def print_media_info(logger, filenames):
                         tv_shows_hdr[media_name][season].update(episodes)
                 else:
                     uncategorized.append(media_name)
-        elif media_type in ['movie', 'movie_hdr']:
+        elif media_type in ['movie', 'movie_hdr', 'movie_4k']:
             if is_extra:
                 if media_type == 'movie':
                     movie_extras[media_name].append(filename)
@@ -1216,7 +1241,7 @@ def print_media_info(logger, filenames):
 
     if tv_shows_hdr:
         print_no_timestamp(logger,
-                           f"{GREY}[INFO]{RESET} {len(tv_shows_hdr)} HDR TV {print_multi_or_single(len(tv_shows_hdr), 'Show')}:")
+                           f"{GREY}[INFO]{RESET} {len(tv_shows_hdr)} 4K/HDR TV {print_multi_or_single(len(tv_shows_hdr), 'Show')}:")
         for show in sorted(tv_shows_hdr):
             seasons = sorted(tv_shows_hdr[show].keys())
             if len(seasons) == 1:

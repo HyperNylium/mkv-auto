@@ -304,7 +304,7 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
                 full_info_found = True
                 is_extra = True
     else:
-        if media_type in ['movie', 'movie_hdr']:
+        if media_type in ['movie', 'movie_hdr', 'movie_4k']:
             pattern = re.compile(r"^" + re.escape(media_name) + r"\s*-\s*(?P<extra>.+)$")
             movie_extra_match = pattern.match(base)
             if movie_extra_match:
@@ -313,11 +313,13 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
                 if normalize_filenames.lower() in ('full', 'full-jf', 'simple', 'simple-jf'):
                     if media_type == 'movie_hdr':
                         restored_filename = f"{media_name}{sep}HDR{ext}"
+                    elif media_type == 'movie_4k':
+                        restored_filename = f"{media_name}{sep}4K{ext}"
                     else:
                         restored_filename = f"{media_name}{ext}"
                 else:
                     restored_filename = original_restored_filename
-        elif media_type in ['tv_show', 'tv_show_hdr']:
+        elif media_type in ['tv_show', 'tv_show_hdr', 'tv_show_4k']:
             season, episodes = extract_season_episode(original_restored_filename)
             if season and episodes:
                 episode_list = compact_episode_list(episodes, True)
@@ -335,6 +337,16 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
                             full_info_found = True
                         else:
                             restored_filename = f"{media_name}{sep}S{formatted_season}E{episode_list}{sep}HDR{ext}"
+                    elif media_type == 'tv_show_4k':
+                        if full_info:
+                            restored_filename = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
+                                                 f"S{formatted_season}E{episode_list}{sep}{full_info['episode_title']}{sep}4K{ext}")
+                            new_folders_str = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
+                                               f"S{formatted_season}E{episode_list}{sep}{full_info['episode_title']}{sep}4K{ext}")
+                            media_name = full_info['show_name']
+                            full_info_found = True
+                        else:
+                            restored_filename = f"{media_name}{sep}S{formatted_season}E{episode_list}{sep}4K{ext}"
                     else:
                         if full_info:
                             restored_filename = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
@@ -361,8 +373,6 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
     elif keep_original_file_structure == 'fallback':
         if media_type in ['other']:
             new_folders = os.path.join(new_folders, original_folders)
-    elif keep_original_file_structure == 'false':
-        pass
 
     output_path = os.path.join(output_folder, new_folders, restored_filename)
 
