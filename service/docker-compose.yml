@@ -4,7 +4,9 @@ services:
     container_name: ${CONTAINER_NAME}
     restart: unless-stopped
     tty: true
-    user: "1000:1000"
+    environment:
+      - UID=1000
+      - GID=1000
     volumes:
       - ${INPUT_FOLDER}:/mkv-auto/files/input
       - ${OUTPUT_FOLDER}:/mkv-auto/files/output

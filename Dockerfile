@@ -5,9 +5,8 @@ COPY prerequisites.sh /pre/
 COPY requirements.txt /pre/
 RUN ./prerequisites.sh
 
-# Create a non-root user and group
-RUN groupadd -g 1000 mkv-auto && \
-    useradd -m -u 1000 -g mkv-auto mkv-auto
+# Install gosu for user switching
+RUN apt-get update && apt-get install -y gosu && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /mkv-auto
 COPY modules /mkv-auto/modules
@@ -17,10 +16,11 @@ COPY subliminal_defaults.toml /mkv-auto/
 COPY mkv-auto.py /mkv-auto/
 COPY entrypoint.sh /mkv-auto/
 COPY service-entrypoint.sh /mkv-auto/
+COPY service-entrypoint-inner.sh /mkv-auto/
+RUN chmod +x /mkv-auto/*.sh
 RUN mkdir -p /mkv-auto/files/.cache
-RUN chown -R mkv-auto:mkv-auto /mkv-auto
 
-# Switch to the non-root user
-USER mkv-auto
+# Use root so we can dynamically create user at runtime
+USER root
 
 ENTRYPOINT ["/mkv-auto/entrypoint.sh"]

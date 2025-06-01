@@ -92,4 +92,4 @@ else
 fi
 
 # Run the container
-$SUDO docker run --rm -it -u "$(id -u):$(id -g)" -v "$HOST_FOLDER:/mkv-auto/files" "$IMAGE_NAME" --docker $move_files "${extra_args[@]}"
+$SUDO docker run --rm -it -v "$HOST_FOLDER:/mkv-auto/files" "$IMAGE_NAME" --docker $move_files "${extra_args[@]}"

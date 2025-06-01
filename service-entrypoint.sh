@@ -1,31 +1,17 @@
 #!/bin/bash
 
-# Log file path
-log_file="/mkv-auto/logs/mkv-auto.log"
+USER_ID=${UID:-1000}
+GROUP_ID=${GID:-1000}
+USERNAME=mkv-auto
 
-# Ensure the log file exists
-touch "$log_file"
-chmod 666 "$log_file"
+if ! getent group "$GROUP_ID" >/dev/null; then
+    groupadd -g "$GROUP_ID" "$USERNAME"
+fi
 
-# Main loop
-while true; do
-    # Always copy user.ini from the host if it exists to pick up potential updates
-    if [ -f /mkv-auto/config/user.ini ]; then
-        cp /mkv-auto/config/user.ini /mkv-auto/user.ini
-    fi
-    if [ -f /mkv-auto/config/subliminal.toml ]; then
-        cp /mkv-auto/config/subliminal.toml /mkv-auto/subliminal.toml
-    fi
-    # Check if the script is already running
-    if ! pgrep -f 'python3 -u mkv-auto.py' > /dev/null; then
-        # Check for new files in the input directory
-        if [ $(ls /mkv-auto/files/input | wc -l) -gt 0 ]; then
-            cd /mkv-auto
-            . /pre/venv/bin/activate
-            # Run the Python script, ensure we capture real-time updates in user.ini
-            python3 -u mkv-auto.py --service --move --silent --temp_folder /mkv-auto/files/tmp --log_file $log_file --input_folder /mkv-auto/files/input --output_folder /mkv-auto/files/output $DEBUG_FLAG
-        fi
-    fi
+if ! id -u "$USER_ID" >/dev/null 2>&1; then
+    useradd -m -u "$USER_ID" -g "$GROUP_ID" "$USERNAME"
+fi
 
-    sleep 5
-done
+chown -R "$USER_ID:$GROUP_ID" /mkv-auto
+
+exec gosu "$USER_ID:$GROUP_ID" /mkv-auto/service-entrypoint-inner.sh
