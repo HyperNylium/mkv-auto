@@ -32,5 +32,20 @@ if [ -d "$parent_dir" ]; then
     # If no such files remain, delete the directory
     if [ ${#files[@]} -eq 0 ]; then
         rm -rf "$parent_dir"
+
+        # Check if parent_dir was named "Season N" and delete its parent if it's now empty
+        season_dir_name="$(basename "$parent_dir")"
+        if [[ "$season_dir_name" =~ ^[Ss]eason\ [0-9]+$ ]]; then
+            grandparent_dir="$(dirname "$parent_dir")"
+            if [ -d "$grandparent_dir" ]; then
+                # Check if grandparent still contains any files/directories
+                shopt -s nullglob
+                remaining=("$grandparent_dir"/*)
+                shopt -u nullglob
+                if [ ${#remaining[@]} -eq 0 ]; then
+                    rm -rf "$grandparent_dir"
+                fi
+            fi
+        fi
     fi
 fi
