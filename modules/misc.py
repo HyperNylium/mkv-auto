@@ -914,118 +914,125 @@ def reformat_filename(filename, names_only, full_info_found, is_extra):
 
 
 def get_tv_episode_metadata(logger, debug, input_str):
-    if debug:
-        custom_print(logger, f"Input string: {YELLOW}'{input_str}'{RESET}")
+    try:
+        if debug:
+            custom_print(logger, f"Input string: {YELLOW}'{input_str}'{RESET}")
 
-    # Supports: S01E01, S01E01-E03, S01E01-03
-    match = re.match(r'^(.*?)\s*(?:-\s*)?S(\d{2})E(\d{2})(?:-E?(\d{2}))?$', input_str, re.IGNORECASE)
-    if not match:
-        raise ValueError()
+        match = re.match(r'^(.*?)\s*(?:-\s*)?S(\d{2})E(\d{2})(?:-E?(\d{2}))?$', input_str, re.IGNORECASE)
+        if not match:
+            raise ValueError()
 
-    raw_show_name, s, e_start, e_end = match.groups()
-    season = int(s)
-    episode_start = int(e_start)
-    episode_end = int(e_end) if e_end else episode_start
+        raw_show_name, s, e_start, e_end = match.groups()
+        season = int(s)
+        episode_start = int(e_start)
+        episode_end = int(e_end) if e_end else episode_start
 
-    # Remove any year in parentheses
-    show_name = re.sub(r'\(\d{4}\)', '', raw_show_name).strip()
+        show_name = re.sub(r'\(\d{4}\)', '', raw_show_name).strip()
 
-    year_found = None
-    ymatch = re.search(r'\((\d{4})\)', raw_show_name)
-    if ymatch:
-        year_found = ymatch.group(1)
+        year_found = None
+        ymatch = re.search(r'\((\d{4})\)', raw_show_name)
+        if ymatch:
+            year_found = ymatch.group(1)
 
-    if debug:
-        debug_year_str = f"Year match: {YELLOW}{bool(ymatch)} ({year_found}){RESET}" if bool(ymatch) else f"Year match: {YELLOW}{bool(ymatch)}{RESET}"
-        custom_print(logger, debug_year_str)
+        if debug:
+            debug_year_str = f"Year match: {YELLOW}{bool(ymatch)} ({year_found}){RESET}" if bool(ymatch) else f"Year match: {YELLOW}{bool(ymatch)}{RESET}"
+            custom_print(logger, debug_year_str)
 
-    recognized_code = None
-    parts = show_name.rsplit(' ', 1)
-    search_show_name = show_name
-    if len(parts) > 1:
-        last_word = parts[-1].upper()
-        if last_word == 'US':
-            recognized_code = 'US'
-            search_show_name = parts[0]
-        elif last_word == 'UK':
-            recognized_code = 'GB'
-            search_show_name = parts[0]
+        recognized_code = None
+        parts = show_name.rsplit(' ', 1)
+        search_show_name = show_name
+        if len(parts) > 1:
+            last_word = parts[-1].upper()
+            if last_word == 'US':
+                recognized_code = 'US'
+                search_show_name = parts[0]
+            elif last_word == 'UK':
+                recognized_code = 'GB'
+                search_show_name = parts[0]
 
-    if debug:
-        custom_print(logger, f"Will search for show: {YELLOW}'{search_show_name}'{RESET}")
+        if debug:
+            custom_print(logger, f"Will search for show: {YELLOW}'{search_show_name}'{RESET}")
 
-    r = requests.get(f'https://api.tvmaze.com/search/shows?q={search_show_name}')
-    if debug:
-        custom_print(logger, f"Sending request:")
-        custom_print(logger, f"{YELLOW}{r}{RESET}")
-    if not r.ok:
-        return None
-    results = r.json()
-    if not results:
-        return None
-    results.sort(key=lambda x: x['score'], reverse=True)
+        try:
+            r = requests.get(f'https://api.tvmaze.com/search/shows?q={search_show_name}', timeout=10)
+            if debug:
+                custom_print(logger, f"Sending request:")
+                custom_print(logger, f"{YELLOW}{r}{RESET}")
+            r.raise_for_status()
+            results = r.json()
+        except (requests.RequestException, ValueError):
+            return None
 
-    code_filtered = []
-    if recognized_code:
-        for item in results:
-            nc = (item['show'].get('network') or {}).get('country') or {}
-            wc = (item['show'].get('webChannel') or {}).get('country') or {}
-            if nc.get('code') == recognized_code or wc.get('code') == recognized_code:
-                code_filtered.append(item)
-        if not code_filtered:
+        if not results:
+            return None
+        results.sort(key=lambda x: x['score'], reverse=True)
+
+        code_filtered = []
+        if recognized_code:
+            for item in results:
+                nc = (item['show'].get('network') or {}).get('country') or {}
+                wc = (item['show'].get('webChannel') or {}).get('country') or {}
+                if nc.get('code') == recognized_code or wc.get('code') == recognized_code:
+                    code_filtered.append(item)
+            if not code_filtered:
+                code_filtered = results
+        else:
             code_filtered = results
-    else:
-        code_filtered = results
 
-    year_filtered = []
-    if year_found:
-        for item in code_filtered:
-            p = item['show'].get('premiered')
-            if p and p.startswith(year_found):
-                year_filtered.append(item)
-        if not year_filtered:
+        year_filtered = []
+        if year_found:
+            for item in code_filtered:
+                p = item['show'].get('premiered')
+                if p and p.startswith(year_found):
+                    year_filtered.append(item)
+            if not year_filtered:
+                year_filtered = code_filtered
+        else:
             year_filtered = code_filtered
-    else:
-        year_filtered = code_filtered
 
-    best = year_filtered[0]
-    show_data = best['show']
+        best = year_filtered[0]
+        show_data = best['show']
 
-    episode_titles = []
-    first_ep_data = None
+        episode_titles = []
+        first_ep_data = None
 
-    for episode in range(episode_start, episode_end + 1):
-        er = requests.get(
-            f"https://api.tvmaze.com/shows/{show_data['id']}/episodebynumber?season={season}&number={episode}")
-        if debug:
-            custom_print(logger, f"Getting show data from id {YELLOW}{show_data['id']} - S{season}E{episode}:{RESET}")
-            custom_print(logger, f"{YELLOW}{er}{RESET}")
-        if not er.ok:
-            continue
-        ep_data = er.json()
-        if not ep_data:
-            continue
-        if debug:
-            custom_print(logger, f"Response:")
-            custom_print(logger, f"{YELLOW}{ep_data}{RESET}")
+        for episode in range(episode_start, episode_end + 1):
+            try:
+                er = requests.get(
+                    f"https://api.tvmaze.com/shows/{show_data['id']}/episodebynumber?season={season}&number={episode}",
+                    timeout=10)
+                if debug:
+                    custom_print(logger, f"Getting show data from id {YELLOW}{show_data['id']} - S{season}E{episode}:{RESET}")
+                    custom_print(logger, f"{YELLOW}{er}{RESET}")
+                er.raise_for_status()
+                ep_data = er.json()
+            except (requests.RequestException, ValueError):
+                continue
 
-        episode_titles.append(ep_data.get('name'))
-        if first_ep_data is None:
-            first_ep_data = ep_data  # store first episode data for shared fields
+            if not ep_data:
+                continue
+            if debug:
+                custom_print(logger, f"Response:")
+                custom_print(logger, f"{YELLOW}{ep_data}{RESET}")
 
-    if not episode_titles or not first_ep_data:
+            episode_titles.append(ep_data.get('name'))
+            if first_ep_data is None:
+                first_ep_data = ep_data
+
+        if not episode_titles or not first_ep_data:
+            return None
+
+        return {
+            'show_name': show_name,
+            'show_year': (show_data.get('premiered') or '')[:4],
+            'episode_title': ' & '.join(episode_titles),
+            'season': season,
+            'episode_number': episode_start,
+            'airdate': first_ep_data.get('airdate'),
+        }
+
+    except Exception:
         return None
-
-    # Combine into single metadata dict
-    return {
-        'show_name': show_name,
-        'show_year': (show_data.get('premiered') or '')[:4],
-        'episode_title': ' & '.join(episode_titles),
-        'season': season,
-        'episode_number': episode_start,
-        'airdate': first_ep_data.get('airdate'),
-    }
-
 
 def hide_the_cursor():
     sys.stdout.write("\033[?25l")
