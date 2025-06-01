@@ -19,3 +19,18 @@ fi
 if [ -e "$source_path" ]; then
     mv "$source_path" "/mkv-auto-input"
 fi
+
+# Get the directory that contained the movie file
+parent_dir="$(dirname "$source_path")"
+
+# Check if directory still contains any mkv, mp4, jpg, png, or srt files
+if [ -d "$parent_dir" ]; then
+    shopt -s nullglob nocaseglob
+    files=("$parent_dir"/*.{mkv,mp4,jpg,png,srt})
+    shopt -u nullglob nocaseglob
+
+    # If no such files remain, delete the directory
+    if [ ${#files[@]} -eq 0 ]; then
+        rm -rf "$parent_dir"
+    fi
+fi
