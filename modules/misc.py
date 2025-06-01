@@ -671,7 +671,7 @@ def update_replacement_lists(logger):
         if os.path.exists(local_path):
             shutil.rmtree(local_path)
         shutil.copytree(fallback_path, local_path)
-        custom_print_no_newline(logger, f"{GREY}[INFO]{RESET} Failed to update replacement lists. Using repo fallback.")
+        custom_print_no_newline(logger, f"{GREY}[INFO]{RESET} Failed to update replacement lists. Using fallback.")
         return None
 
 

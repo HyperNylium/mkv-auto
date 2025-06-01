@@ -101,7 +101,8 @@ def count_files(directory):
 
 def remove_empty_dirs(path):
     for root, dirs, files in os.walk(path, topdown=False):
-        if not dirs and not files:
+        # Check if the directory is now empty
+        if not os.listdir(root):
             try:
                 os.rmdir(root)
             except OSError:
