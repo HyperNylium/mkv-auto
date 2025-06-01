@@ -201,11 +201,7 @@ def mkv_auto(args):
                                  f"RAM {GREY}{get_block_gradient(ram_info['percent_ram'])}{RESET} {ram_info['percent_ram']}%")
             custom_print(logger, f"{GREY}[INFO]{RESET} Using {max_workers} {print_multi_or_single(max_workers, 'worker')} based on system load.")
 
-            last_updated_replacements = update_replacement_lists()
-            if last_updated_replacements:
-                custom_print_no_newline(logger, f"{GREY}[INFO]{RESET} Updating "
-                                                f"replacement lists ({last_updated_replacements})")
-
+            update_replacement_lists(logger)
             start_time = time.time()
 
             errored_ocr_list = []

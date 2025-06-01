@@ -629,9 +629,10 @@ def check_config(config, section, option):
         return None
 
 
-def update_replacement_lists():
+def update_replacement_lists(logger):
     repo_url = 'https://github.com/philiptn/ocr-replacements.git'
     local_path = 'ocr-replacements'
+    fallback_path = 'modules/fallback-ocr-replacements'
 
     def run_git_command(command, cwd=None):
         subprocess.run(
@@ -642,27 +643,36 @@ def update_replacement_lists():
             check=True
         )
 
-    if not os.path.exists(local_path):
-        run_git_command(['git', 'clone', repo_url, local_path])
-
-    # Move into the repo directory
-    original_cwd = os.getcwd()
-    os.chdir(local_path)
-
     try:
-        run_git_command(['git', 'checkout', 'main'])
-        run_git_command(['git', 'pull', 'origin', 'main'])
+        if not os.path.exists(local_path):
+            run_git_command(['git', 'clone', repo_url, local_path])
 
-        # Get the last commit date (still capture this output)
-        result = subprocess.run(
-            ['git', 'log', '-1', '--format=%cd', '--date=short'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip()
-    finally:
-        os.chdir(original_cwd)
+        original_cwd = os.getcwd()
+        os.chdir(local_path)
+
+        try:
+            run_git_command(['git', 'checkout', 'main'])
+            run_git_command(['git', 'pull', 'origin', 'main'])
+
+            result = subprocess.run(
+                ['git', 'log', '-1', '--format=%cd', '--date=short'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            last_updated = result.stdout.strip()
+            custom_print_no_newline(logger, f"{GREY}[INFO]{RESET} Updating replacement lists ({last_updated})")
+            return last_updated
+        finally:
+            os.chdir(original_cwd)
+
+    except Exception:
+        # Fallback if cloning or pulling fails
+        if os.path.exists(local_path):
+            shutil.rmtree(local_path)
+        shutil.copytree(fallback_path, local_path)
+        custom_print_no_newline(logger, f"{GREY}[INFO]{RESET} Failed to update replacement lists. Using repo fallback.")
+        return None
 
 
 def decompose_subtitle_filename(subtitle_file):
