@@ -103,13 +103,7 @@ excluded_tags = [
 # Source:
 # https://support.plex.tv/articles/200220677-local-media-assets-movies/
 # https://support.plex.tv/articles/200220717-local-media-assets-tv-shows/
-poster_base_names = [
-    "cover.jpg", "cover.png", "cover.jpeg", "cover.tbn",
-    "default.jpg", "default.png", "default.jpeg", "default.tbn",
-    "folder.jpg", "folder.png", "folder.jpeg", "folder.tbn",
-    "movie.jpg", "movie.png", "movie.jpeg", "movie.tbn",
-    "poster.jpg", "poster.png", "poster.jpeg", "poster.tbn"
-]
+poster_base_names = ["cover", "default", "folder", "movie", "poster"]
 
 
 def process_extras(input_folder):
