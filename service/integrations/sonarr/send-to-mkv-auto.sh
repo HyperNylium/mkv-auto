@@ -20,17 +20,24 @@ if [ -e "$source_path" ]; then
     mv "$source_path" "/mkv-auto-input"
 fi
 
-# Get the directory that contained the episode file
+# Get the directory that contained the episode file (or folder)
 parent_dir="$(dirname "$source_path")"
 
 # Check if directory still contains any mkv, mp4, jpg, png, or srt files
+# or any subdirectories. Only delete if neither files nor subdirs remain.
 if [ -d "$parent_dir" ]; then
     shopt -s nullglob nocaseglob
+
+    # Collect any media/subtitle/image files
     files=("$parent_dir"/*.{mkv,mp4,jpg,png,srt})
+
+    # Collect any subdirectories
+    dirs=("$parent_dir"/*/)
+
     shopt -u nullglob nocaseglob
 
-    # If no such files remain, delete the directory
-    if [ ${#files[@]} -eq 0 ]; then
+    # If no media/subtitle/image files AND no subdirectories remain, delete the directory
+    if [ ${#files[@]} -eq 0 ] && [ ${#dirs[@]} -eq 0 ]; then
         rm -rf "$parent_dir"
 
         # Check if parent_dir was named "Season N" and delete its parent if it's now empty
