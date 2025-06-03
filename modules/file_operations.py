@@ -326,8 +326,7 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
                 episode_list = compact_episode_list(episodes, True)
                 formatted_season = f"{season:02}" if season < 100 else f"{season:03}"
                 if normalize_filenames.lower() in ('full', 'full-jf', 'simple', 'simple-jf'):
-                    if normalize_filenames.lower() in ('full', 'full-jf'):
-                        full_info = get_tv_episode_metadata(logger, debug, f"{media_name}{sep}S{formatted_season}E{episode_list}")
+                    full_info = get_tv_episode_metadata(logger, debug, f"{media_name}{sep}S{formatted_season}E{episode_list}")
                     if media_type == 'tv_show_hdr':
                         if full_info:
                             restored_filename = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
