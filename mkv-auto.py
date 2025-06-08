@@ -163,7 +163,7 @@ def mkv_auto(args):
 
             filenames = [f for f in filenames if not f.startswith('.')]
             filenames_covers = [f for f in filenames if f.lower().endswith(('.png', '.jpg'))
-                                and any(f.lower() == name for name in poster_base_names)]
+                                and any(name in f.lower() for name in poster_base_names)]
 
             relative_dir_path = os.path.relpath(dirpath, temp_dir)
             all_dirnames = relative_dir_path.split(os.sep)

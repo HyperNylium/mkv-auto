@@ -178,14 +178,17 @@ def process_extras(input_folder):
             if ext not in ('.jpg', '.png'):
                 extras_title = to_sentence_case(extras_title)
 
-            if 'tv_show' in media_type:
+            if media_type in ('tv_show', 'tv_show_hdr', 'tv_show_4k'):
                 # TV show extras:
                 episode_num = f"{extras_counter:03d}"
                 new_filename = f"{media_name} - S000E{episode_num} - {extras_title}{matching_tag}{ext}"
                 extras_counter += 1
             else:
                 # Movie extras:
-                new_filename = f"{media_name} - {extras_title}{matching_tag}{ext}"
+                if ext in ('.jpg', '.png'):
+                    new_filename = f"{media_name} - {base.lower()}{ext}"
+                else:
+                    new_filename = f"{media_name} - {extras_title}{matching_tag}{ext}"
 
             new_full_path = os.path.join(root, new_filename)
 
