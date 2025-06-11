@@ -298,12 +298,13 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
         restored_filename = tv_extra_match.group("original") + ext
         if normalize_filenames.lower() in ('full', 'full-jf', 'simple', 'simple-jf'):
             # Using S01E01 as a placeholder to get the full show name with year
-            full_info = get_tv_episode_metadata(logger, debug, f"{media_name}{sep}S01E01")
-            if full_info:
-                new_folders_str = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
-                                   f"S01E01.mkv")
-                full_info_found = True
-                is_extra = True
+            if normalize_filenames.lower() in ('full', 'full-jf'):
+                full_info = get_tv_episode_metadata(logger, debug, f"{media_name}{sep}S01E01")
+                if full_info:
+                    new_folders_str = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
+                                       f"S01E01.mkv")
+                    full_info_found = True
+                    is_extra = True
     else:
         if media_type in ['movie', 'movie_hdr', 'movie_4k']:
             pattern = re.compile(r"^" + re.escape(media_name) + r"\s*-\s*(?P<extra>.+)$")
@@ -327,7 +328,14 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
                 formatted_season = f"{season:02}" if season < 100 else f"{season:03}"
                 if normalize_filenames.lower() in ('full', 'full-jf', 'simple', 'simple-jf'):
                     if normalize_filenames.lower() in ('full', 'full-jf'):
-                        full_info = get_tv_episode_metadata(logger, debug,f"{media_name}{sep}S{formatted_season}E{episode_list}")
+                        full_info = get_tv_episode_metadata(logger, debug, f"{media_name}{sep}S{formatted_season}E{episode_list}")
+                        # If no match, try to get show name only using S01E01
+                        if not full_info:
+                            full_info = get_tv_episode_metadata(logger, debug,
+                                                                f"{media_name}{sep}S01E01")
+                            if full_info:
+                                episode_list_short = compact_episode_list(episodes, False)
+                                full_info['episode_title'] = f'Episode {episode_list_short}'
                     if media_type == 'tv_show_hdr':
                         if full_info:
                             restored_filename = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
