@@ -326,6 +326,7 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
             if season and episodes:
                 episode_list = compact_episode_list(episodes, True)
                 formatted_season = f"{season:02}" if season < 100 else f"{season:03}"
+                show_name_format = media_name
                 if normalize_filenames.lower() in ('full', 'full-jf', 'simple', 'simple-jf'):
                     if normalize_filenames.lower() in ('full', 'full-jf'):
                         full_info = get_tv_episode_metadata(logger, debug, f"{media_name}{sep}S{formatted_season}E{episode_list}")
@@ -336,11 +337,16 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
                             if full_info:
                                 episode_list_short = compact_episode_list(episodes, False)
                                 full_info['episode_title'] = f'Episode {episode_list_short}'
+                    if full_info:
+                        if normalize_filenames.lower() in ('simple', 'simple-jf'):
+                            show_name_format = f"{full_info['show_name']}"
+                        else:
+                            show_name_format = f"{full_info['show_name']} ({full_info['show_year']})"
                     if media_type == 'tv_show_hdr':
                         if full_info:
-                            restored_filename = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
+                            restored_filename = (f"{show_name_format}{sep}"
                                                  f"S{formatted_season}E{episode_list}{sep}{full_info['episode_title']}{sep}HDR{ext}")
-                            new_folders_str = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
+                            new_folders_str = (f"{show_name_format}{sep}"
                                                f"S{formatted_season}E{episode_list}{sep}{full_info['episode_title']}{sep}HDR{ext}")
                             media_name = full_info['show_name']
                             full_info_found = True
@@ -348,9 +354,9 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
                             restored_filename = f"{media_name}{sep}S{formatted_season}E{episode_list}{sep}HDR{ext}"
                     elif media_type == 'tv_show_4k':
                         if full_info:
-                            restored_filename = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
+                            restored_filename = (f"{show_name_format}{sep}"
                                                  f"S{formatted_season}E{episode_list}{sep}{full_info['episode_title']}{sep}4K{ext}")
-                            new_folders_str = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
+                            new_folders_str = (f"{show_name_format}{sep}"
                                                f"S{formatted_season}E{episode_list}{sep}{full_info['episode_title']}{sep}4K{ext}")
                             media_name = full_info['show_name']
                             full_info_found = True
@@ -358,9 +364,9 @@ def move_file_to_output(logger, debug, input_file_path, output_folder, folder_st
                             restored_filename = f"{media_name}{sep}S{formatted_season}E{episode_list}{sep}4K{ext}"
                     else:
                         if full_info:
-                            restored_filename = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
+                            restored_filename = (f"{show_name_format}{sep}"
                                                  f"S{formatted_season}E{episode_list}{sep}{full_info['episode_title']}{ext}")
-                            new_folders_str = (f"{full_info['show_name']} ({full_info['show_year']}){sep}"
+                            new_folders_str = (f"{show_name_format}{sep}"
                                                f"S{formatted_season}E{episode_list}{sep}{full_info['episode_title']}{ext}")
                             media_name = full_info['show_name']
                             full_info_found = True
