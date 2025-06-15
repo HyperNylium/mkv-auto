@@ -16,7 +16,6 @@ import psutil
 import base64
 import requests
 
-
 # ANSI color codes
 BLUE = '\033[94m'
 RESET = '\033[0m'  # Reset to default terminal color
@@ -527,7 +526,7 @@ def flatten_directories(logger, directory):
     marker_end = "__.__"
     path_separator = "___"
 
-    max_filename_length = 255  # For most filesystems
+    max_filename_length = 255  # Filesystem limit for filename (basename)
 
     def is_running_under_wsl():
         try:
@@ -537,26 +536,29 @@ def flatten_directories(logger, directory):
             return False
 
     def get_effective_max_path():
-        if os.name == 'nt':
-            return 260  # Windows limit
-        elif is_running_under_wsl():
-            return 260  # WSL mounts have Windows limits
+        if os.name == 'nt' or is_running_under_wsl():
+            return 260
         else:
-            return 4096  # Linux
+            return 4096
 
     max_total_path = get_effective_max_path()
 
-    def truncate_encoded_path(parts, max_encoded_length):
+    def build_encoded_path(parts, filename):
+        """Trim encoded path until resulting filename fits limits, reserving suffix space."""
         encoded_parts = []
-        total_len = 0
+        reserved_suffix_space = 50  # Reserve for _tmp.srt, etc.
+
         for part in parts:
-            encoded = part.replace(os.sep, path_separator)
-            part_len = len(encoded) + len(path_separator) if encoded_parts else len(encoded)
-            if total_len + part_len > max_encoded_length:
-                break
-            encoded_parts.append(encoded)
-            total_len += part_len
-        return path_separator.join(encoded_parts)
+            encoded_parts.append(part.replace(os.sep, path_separator))
+
+        while encoded_parts:
+            encoded_path = path_separator.join(encoded_parts)
+            new_name = f"{marker_start}{encoded_path}{marker_end}{filename}"
+            if len(new_name) <= max_filename_length - reserved_suffix_space:
+                return encoded_path
+            encoded_parts.pop()
+
+        return ""
 
     for root, dirs, files in os.walk(directory, topdown=False):
         dirs[:] = [d for d in dirs if not d.startswith('.')]
@@ -571,19 +573,17 @@ def flatten_directories(logger, directory):
                 encoded_path = ""
             else:
                 parts = rel_path.split(os.sep)
-                max_encoded_len = max_total_path - len(name) - len(marker_start) - len(marker_end) - len(directory) - 1
-                encoded_path = truncate_encoded_path(parts, max_encoded_len)
+                encoded_path = build_encoded_path(parts, name)
 
             new_name = f"{marker_start}{encoded_path}{marker_end}{name}"
             destination = os.path.join(directory, new_name)
 
-            if len(os.path.basename(new_name)) > max_filename_length:
-                encoded_parts = encoded_path.split(path_separator)
-                while len(os.path.basename(new_name)) > max_filename_length and encoded_parts:
-                    encoded_parts.pop()
-                    encoded_path = path_separator.join(encoded_parts)
-                    new_name = f"{marker_start}{encoded_path}{marker_end}{name}"
-                    destination = os.path.join(directory, new_name)
+            # Double-check full path doesn't exceed OS path limit
+            if len(destination) > max_total_path:
+                # Emergency fallback: truncate the encoded path more
+                encoded_path = ""
+                new_name = f"{marker_start}{encoded_path}{marker_end}{name}"
+                destination = os.path.join(directory, new_name)
 
             if source != destination:
                 log_debug(logger, f"[INFO] Moving: {source} → {destination}")
@@ -1073,6 +1073,7 @@ def get_tv_episode_metadata(logger, debug, input_str):
 
     except Exception:
         return None
+
 
 def hide_the_cursor():
     sys.stdout.write("\033[?25l")
