@@ -527,6 +527,37 @@ def flatten_directories(logger, directory):
     marker_end = "__.__"
     path_separator = "___"
 
+    max_filename_length = 255  # For most filesystems
+
+    def is_running_under_wsl():
+        try:
+            with open("/proc/version", "r") as f:
+                return "Microsoft" in f.read()
+        except Exception:
+            return False
+
+    def get_effective_max_path():
+        if os.name == 'nt':
+            return 260  # Windows limit
+        elif is_running_under_wsl():
+            return 260  # WSL mounts have Windows limits
+        else:
+            return 4096  # Linux
+
+    max_total_path = get_effective_max_path()
+
+    def truncate_encoded_path(parts, max_encoded_length):
+        encoded_parts = []
+        total_len = 0
+        for part in parts:
+            encoded = part.replace(os.sep, path_separator)
+            part_len = len(encoded) + len(path_separator) if encoded_parts else len(encoded)
+            if total_len + part_len > max_encoded_length:
+                break
+            encoded_parts.append(encoded)
+            total_len += part_len
+        return path_separator.join(encoded_parts)
+
     for root, dirs, files in os.walk(directory, topdown=False):
         dirs[:] = [d for d in dirs if not d.startswith('.')]
         files = [f for f in files if not f.startswith('.')]
@@ -534,23 +565,35 @@ def flatten_directories(logger, directory):
         for name in files:
             source = os.path.join(root, name)
             rel_path = os.path.relpath(root, directory)
-
             log_debug(logger, f"[DEBUG] File in input folder: '{name}'")
 
-            # Always encode the path, even for root-level files
             if rel_path == ".":
-                encoded_path = ""  # Represent root with an empty string
+                encoded_path = ""
             else:
-                encoded_path = rel_path.replace(os.sep, path_separator)
+                parts = rel_path.split(os.sep)
+                max_encoded_len = max_total_path - len(name) - len(marker_start) - len(marker_end) - len(directory) - 1
+                encoded_path = truncate_encoded_path(parts, max_encoded_len)
 
             new_name = f"{marker_start}{encoded_path}{marker_end}{name}"
             destination = os.path.join(directory, new_name)
 
+            if len(os.path.basename(new_name)) > max_filename_length:
+                encoded_parts = encoded_path.split(path_separator)
+                while len(os.path.basename(new_name)) > max_filename_length and encoded_parts:
+                    encoded_parts.pop()
+                    encoded_path = path_separator.join(encoded_parts)
+                    new_name = f"{marker_start}{encoded_path}{marker_end}{name}"
+                    destination = os.path.join(directory, new_name)
+
             if source != destination:
+                log_debug(logger, f"[INFO] Moving: {source} → {destination}")
                 shutil.move(source, destination)
 
         for name in dirs:
-            os.rmdir(os.path.join(root, name))
+            try:
+                os.rmdir(os.path.join(root, name))
+            except OSError:
+                pass  # Directory not empty
 
 
 def unflatten_file(flattened_filename, output_folder):

@@ -1535,7 +1535,7 @@ def move_files_to_output_process(logger, debug, input_files, dirpath, all_dirnam
 
     # If filenames are to be fully normalized,
     # limit workers to not hit TVMAZE rate limiting
-    if normalize_filenames.lower() == 'full':
+    if normalize_filenames.lower() in ('full', 'full-jf'):
         num_workers = min(2, max_worker_threads)
 
     header = "INFO"
