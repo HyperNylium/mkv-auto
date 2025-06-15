@@ -38,6 +38,8 @@ To ensure that the TEMP location does not run out space, MKV-Auto will calculate
 
 Note: `defaults.ini` contains the default options for this utility. If you want to make any changes, create a new file named `user.ini` with the parameters you want to override. The same applies for the Subliminal [config](https://github.com/Diaoul/subliminal/blob/main/docs/config.toml): `subliminal_defaults.toml` &rarr; `subliminal.toml`. For the Subliminal config, make sure to at least include all the original fields from `subliminal_defaults.toml`.  
 
+An example config for just keeping English audio and subtitle tracks can be seen in `example-user.ini`.
+
 ## Ways to run MKV-Auto
 
 - [Process files manually (Linux - Native Python)](#process-files-manually-linux---native-python)

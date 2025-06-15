@@ -476,6 +476,8 @@ def get_wanted_audio_tracks(debug, file_info, pref_audio_langs, remove_commentar
 
     file_name = file_info["file_name"]
 
+    only_keep_one_matching_audio_track = check_config(config, 'audio', 'only_keep_one_matching_audio_track')
+
     audio_track_ids = []
     audio_track_languages = []
     audio_track_names = []
@@ -577,19 +579,12 @@ def get_wanted_audio_tracks(debug, file_info, pref_audio_langs, remove_commentar
                 track_language = 'nor'
 
             if track_language in pref_audio_langs:
+                add_track = False
                 if 'original' in track_name.lower():
                     original_audio_track_ids.append(track["id"])
                     original_audio_track_names.append(track_name)
                     original_audio_track_languages.append(track_language)
                     original_audio_track_codecs.append(audio_codec)
-
-                # Only keep unique audio tracks that
-                # match language, differentiate based on name
-                add_track = False
-                if audio_track_languages.count(track_language) == 0:
-                    add_track = True
-                elif not all(track_name == name for name in all_track_names):
-                    add_track = True
 
                 if 'compatibility' in track_name.lower():
                     compatibility_audio_track_ids.append(track["id"])
@@ -597,6 +592,9 @@ def get_wanted_audio_tracks(debug, file_info, pref_audio_langs, remove_commentar
                     compatibility_audio_track_languages.append(track_language)
                     compatibility_audio_track_codecs.append(audio_codec)
                     add_track = False
+
+                if not only_keep_one_matching_audio_track:
+                    add_track = True
 
                 if add_track:
                     audio_track_ids.append(track["id"])
@@ -617,18 +615,14 @@ def get_wanted_audio_tracks(debug, file_info, pref_audio_langs, remove_commentar
                         default_audio_track_set = False
 
             elif track_language not in pref_audio_langs and not audio_track_ids:
+                add_track = False
                 if 'original' in track_name.lower():
                     unmatched_original_audio_track_ids.append(track["id"])
                     unmatched_original_audio_track_names.append(track_name)
                     unmatched_original_audio_track_languages.append(track_language)
                     unmatched_original_audio_track_codecs.append(audio_codec)
 
-                # Only keep unique audio tracks that
-                # match language, differentiate based on name
-                add_track = False
-                if unmatched_audio_track_languages.count(track_language) == 0:
-                    add_track = True
-                elif not all(track_name == name for name in all_track_names):
+                if not only_keep_one_matching_audio_track:
                     add_track = True
 
                 if 'compatibility' in track_name.lower():

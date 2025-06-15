@@ -345,6 +345,7 @@ def convert_ass_to_srt(subtitle_files, main_audio_track_lang):
     errored_ass_subs = []
     missing_subs_langs = []
     keep_original_subtitles = check_config(config, 'subtitles', 'keep_original_subtitles')
+    remove_sdh = check_config(config, 'subtitles', 'always_remove_sdh')
 
     for index, file in enumerate(subtitle_files):
         if file.endswith('.ass'):
@@ -373,6 +374,11 @@ def convert_ass_to_srt(subtitle_files, main_audio_track_lang):
                     output_name = name if name else full_language.name
                 else:
                     output_name = name if name else ''
+                if remove_sdh:
+                    output_name = re.sub(r'\s+', ' ', re.sub(r'\(?\bSDH\b\)?', '', output_name, flags=re.IGNORECASE)).strip()
+                    if 'SDH' in name.upper():
+                        output_name = f"{output_name} (from {name})"
+
                 output_name_b64 = base64.b64encode(output_name.encode("utf-8")).decode("utf-8")
                 original_subtitle = f"{base}_{forced}_'{original_name_b64}'_{track_id}_{language}.{original_extension}"
                 final_subtitle = f"{base}_{forced}_'{output_name_b64}'_{track_id}_{language}.srt"
@@ -587,6 +593,7 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
     subtitleedit_dir = 'utilities/SubtitleEdit'
     all_replacements = []
     keep_original_subtitles = check_config(config, 'subtitles', 'keep_original_subtitles')
+    remove_sdh_pref = check_config(config, 'subtitles', 'always_remove_sdh')
 
     if debug:
         print('\n')
@@ -638,7 +645,12 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
                     # Enable forced only for the generated file, not original
                     all_track_forced = all_track_forced + [1, 0]
                 else:
-                    all_track_names = all_track_names + [full_language, name if name else "Original"]
+                    output_name = name
+                    if remove_sdh_pref:
+                        output_name = re.sub(r'\s+', ' ', re.sub(r'\(?\bSDH\b\)?', '', output_name, flags=re.IGNORECASE)).strip()
+                        if 'SDH' in name.upper():
+                            output_name = f"{output_name} (from {name})"
+                    all_track_names = all_track_names + [output_name if output_name else full_language, name if name else "Original"]
                     all_track_forced = all_track_forced + [forced, forced]
             else:
                 updated_sub_filetypes = updated_sub_filetypes + ['srt']
@@ -650,7 +662,12 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
                     all_track_names = all_track_names + [f'non-{main_audio_track_lang} dialogue']
                     all_track_forced = all_track_forced + [1]
                 else:
-                    all_track_names = all_track_names + [full_language]
+                    output_name = name
+                    if remove_sdh_pref:
+                        output_name = re.sub(r'\s+', ' ', re.sub(r'\(?\bSDH\b\)?', '', output_name, flags=re.IGNORECASE)).strip()
+                        if 'SDH' in name.upper():
+                            output_name = f"{output_name} (from {name})"
+                    all_track_names = all_track_names + [output_name if output_name else full_language]
                     all_track_forced = all_track_forced + [forced]
         else:
             if output_subtitle in ('ERROR', 'SKIP'):
@@ -676,6 +693,7 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
 
 def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, subtitleedit_dir):
     ocr_languages = check_config(config, 'subtitles', 'ocr_languages')
+    remove_sdh = check_config(config, 'subtitles', 'always_remove_sdh')
     replacements = []
     # Create a temporary directory for this thread's SubtitleEdit instance
     temp_dir = tempfile.mkdtemp(prefix='SubtitleEdit_')
@@ -738,9 +756,13 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
             else:
                 full_language = pycountry.languages.get(alpha_3=language)
                 if full_language:
-                    output_name = full_language.name
+                    output_name = name if name else full_language.name
                 else:
-                    output_name = ''
+                    output_name = name if name else ''
+                if remove_sdh:
+                    output_name = re.sub(r'\s+', ' ', re.sub(r'\(?\bSDH\b\)?', '', output_name, flags=re.IGNORECASE)).strip()
+                    if 'SDH' in name.upper():
+                        output_name = f"{output_name} (from {name})"
                 output_name_b64 = base64.b64encode(output_name.encode("utf-8")).decode("utf-8")
                 original_subtitle = f"{base}_{forced}_'{original_name_b64}'_{track_id}_{language}.{original_extension}"
                 final_subtitle = f"{base}_{forced}_'{output_name_b64}'_{track_id}_{language}.srt"
@@ -890,6 +912,7 @@ def get_wanted_subtitle_tracks(debug, file_info, pref_langs):
     forced_subtitles_priority = check_config(config, 'subtitles', 'forced_subtitles_priority')
     main_audio_language_subs_only = check_config(config, 'subtitles', 'main_audio_language_subs_only')
     always_remove_sdh = check_config(config, 'subtitles', 'always_remove_sdh')
+    only_keep_one_matching_subtitle = check_config(config, 'subtitles', 'only_keep_one_matching_subtitle')
 
     total_subs_tracks = 0
     pref_subs_langs = pref_langs
@@ -1011,6 +1034,7 @@ def get_wanted_subtitle_tracks(debug, file_info, pref_langs):
             if track_language in pref_subs_langs:
                 needs_processing = True
                 needs_sdh_removal = True
+                add_track = False
 
                 if forced_track:
                     forced_track_ids.append(track["id"])
@@ -1049,7 +1073,12 @@ def get_wanted_subtitle_tracks(debug, file_info, pref_langs):
                         missing_subs_langs.remove('eng')
                     pref_subs_langs.append('eng')
 
-                if subs_track_languages.count(track_language) == 0 and not forced_track:
+                if subs_track_languages.count(track_language) == 0:
+                    add_track = True
+                elif subs_track_languages.count(track_language) > 0 and not only_keep_one_matching_subtitle:
+                    add_track = True
+
+                if not forced_track and add_track:
                     if track["codec"] == "HDMV PGS":
                         subs_track_ids.append(track["id"])
                         subs_track_languages.append(track_language)
@@ -1092,8 +1121,7 @@ def get_wanted_subtitle_tracks(debug, file_info, pref_langs):
                         needs_convert = True
                         needs_processing = True
                 else:
-                    if track["codec"] != "SubRip/SRT" and subs_track_languages.count(
-                            track_language) == 1 and not forced_track:
+                    if track["codec"] != "SubRip/SRT" and not forced_track and add_track:
                         if 'srt' in sub_filetypes:
                             for index, lang in enumerate(subs_track_languages):
                                 if lang == track_language:
