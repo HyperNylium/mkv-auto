@@ -1396,6 +1396,7 @@ def process_external_subs_worker(debug, input_file, dirpath, missing_subs_langs)
     all_langs = []
     all_sub_files = []
     updated_missing_subs_langs = []
+    show_name_normalized = ''
     num = 1000
 
     subtitle_files = sorted(
@@ -1431,7 +1432,8 @@ def process_external_subs_worker(debug, input_file, dirpath, missing_subs_langs)
         subtitle_path = os.path.join(dirpath, subtitle)
 
         sub_base_normalized = normalize_title(sub_base)
-        show_name_normalized = normalize_title(show_name)
+        if show_name:
+            show_name_normalized = normalize_title(show_name)
 
         if season_episode:
             match_condition = (season_episode in sub_base.lower() and show_name_normalized in sub_base_normalized)
@@ -1503,12 +1505,13 @@ def process_external_subs_worker(debug, input_file, dirpath, missing_subs_langs)
             for index, lang in enumerate(all_langs):
                 if lang == pref_lang:
                     all_new_sub_files.append(all_sub_files[index])
+        all_sub_files = all_new_sub_files
     if main_audio_language_subs_only:
         all_new_sub_files = []
         for index, lang in enumerate(all_langs):
             if lang == main_audio_track_lang:
                 all_new_sub_files.append(all_sub_files[index])
-    all_sub_files = all_new_sub_files
+        all_sub_files = all_new_sub_files
 
     if download_missing_subs.lower() == 'always':
         if pref_subs_langs:
@@ -1521,7 +1524,7 @@ def process_external_subs_worker(debug, input_file, dirpath, missing_subs_langs)
     return all_sub_files, updated_missing_subs_langs
 
 
-def move_files_to_output_process(logger, debug, input_files, dirpath, all_dirnames, output_dir):
+def move_files_to_output_process(logger, debug, input_files, dirpath, all_dirnames, output_dir, errored):
     total_files = len(input_files)
     normalize_filenames = check_config(config, 'general', 'normalize_filenames')
     files = input_files
@@ -1539,7 +1542,10 @@ def move_files_to_output_process(logger, debug, input_files, dirpath, all_dirnam
         num_workers = min(2, max_worker_threads)
 
     header = "INFO"
-    description = f"Move {print_multi_or_single(total_files, 'file')} to destination folder"
+    if errored:
+        description = f"Move track-filtered-only {print_multi_or_single(total_files, 'file')} to destination folder"
+    else:
+        description = f"Move {print_multi_or_single(total_files, 'file')} to destination folder"
 
     # Initialize progress
     print_with_progress(logger, 0, total_files, header=header, description=description)

@@ -72,6 +72,7 @@ def mkv_auto(args):
         exit(0)
 
     filenames_mkv_only = []
+    errored = False
 
     try:
         if move_files:
@@ -209,15 +210,17 @@ def mkv_auto(args):
             all_downloaded_subs = []
             subtitle_files_to_process = []
             subtitle_files_all = []
+            external_subs_found = False
 
             need_processing_audio, need_processing_subs, all_missing_subs_langs = trim_audio_in_mkv_files(logger, debug, filenames_mkv_only, dirpath)
             audio_tracks_to_be_merged, subtitle_tracks_to_be_merged = generate_audio_tracks_in_mkv_files(logger, debug, filenames_mkv_only, dirpath, need_processing_audio)
 
-            if any(need_processing_subs):
-                if any(file.endswith(('.srt', '.ass', '.sub', '.idx', '.sup')) for file in filenames) and download_missing_subs.lower() != 'override':
-                    total_external_subs, all_missing_subs_langs = process_external_subs(
-                        logger, debug, dirpath, filenames_mkv_only, all_missing_subs_langs)
+            if any(file.endswith(('.srt', '.ass', '.sub', '.idx', '.sup')) for file in filenames) and download_missing_subs.lower() != 'override':
+                total_external_subs, all_missing_subs_langs = process_external_subs(logger, debug, dirpath, filenames_mkv_only, all_missing_subs_langs)
+                if any(sub for sub in total_external_subs):
+                    external_subs_found = True
 
+            if any(need_processing_subs) or external_subs_found:
                 if download_missing_subs.lower() != 'override':
                     all_subtitle_files = extract_subs_in_mkv_process(logger, debug, filenames_mkv_only, dirpath)
 
@@ -287,7 +290,7 @@ def mkv_auto(args):
 
             filenames_mkv_only = remove_clutter_process(logger, debug, filenames_mkv_only, dirpath)
             all_filenames = filenames_mkv_only + filenames_covers
-            move_files_to_output_process(logger, debug, all_filenames, dirpath, all_dirnames, output_dir)
+            move_files_to_output_process(logger, debug, all_filenames, dirpath, all_dirnames, output_dir, errored)
 
             end_time = time.time()
             processing_time = end_time - start_time
@@ -312,12 +315,13 @@ def mkv_auto(args):
                     except:
                         pass
         else:
+            errored = True
             # If anything were to fail, move files to output folder
             if filenames_mkv_only:
                 custom_print(logger, f"{RED}[ERROR]{RESET} An unknown error occured. Moving "
                                      f"{print_multi_or_single(len(filenames_mkv_only), 'file')} to destination folder...\n{e}")
                 custom_print(logger, traceback.print_tb(e.__traceback__))
-                move_files_to_output_process(logger, debug, filenames_mkv_only, dirpath, all_dirnames, output_dir)
+                move_files_to_output_process(logger, debug, filenames_mkv_only, dirpath, all_dirnames, output_dir, errored)
             else:
                 custom_print(logger, f"{RED}[ERROR]{RESET} An unknown error occured: {e}")
 
