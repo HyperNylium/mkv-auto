@@ -819,6 +819,8 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
 
             if name:
                 new_name = name
+                if remove_sdh:
+                    new_name = remove_sdh_cc_text(new_name)
 
             name = new_name
             name_b64 = base64.b64encode(new_name.encode("utf-8")).decode("utf-8")
