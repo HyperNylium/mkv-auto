@@ -375,9 +375,9 @@ def convert_ass_to_srt(subtitle_files, main_audio_track_lang):
                 else:
                     output_name = name if name else ''
                 if remove_sdh:
-                    output_name = re.sub(r'\s+', ' ', re.sub(r'\(?\bSDH\b\)?', '', output_name, flags=re.IGNORECASE)).strip()
-                    if 'SDH' in name.upper():
-                        output_name = f"{output_name} (from {name})"
+                    output_name = remove_sdh_cc_text(output_name)
+                    if 'SDH' in name.upper() or 'CC' in name.upper():
+                        output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
 
                 output_name_b64 = base64.b64encode(output_name.encode("utf-8")).decode("utf-8")
                 original_subtitle = f"{base}_{forced}_'{original_name_b64}'_{track_id}_{language}.{original_extension}"
@@ -647,9 +647,9 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
                 else:
                     output_name = name
                     if remove_sdh_pref:
-                        output_name = re.sub(r'\s+', ' ', re.sub(r'\(?\bSDH\b\)?', '', output_name, flags=re.IGNORECASE)).strip()
-                        if 'SDH' in name.upper():
-                            output_name = f"{output_name} (from {name})"
+                        output_name = remove_sdh_cc_text(output_name)
+                        if 'SDH' in name.upper() or 'CC' in name.upper():
+                            output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
                     all_track_names = all_track_names + [output_name if output_name else full_language, name if name else "Original"]
                     all_track_forced = all_track_forced + [forced, forced]
             else:
@@ -664,9 +664,9 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
                 else:
                     output_name = name
                     if remove_sdh_pref:
-                        output_name = re.sub(r'\s+', ' ', re.sub(r'\(?\bSDH\b\)?', '', output_name, flags=re.IGNORECASE)).strip()
-                        if 'SDH' in name.upper():
-                            output_name = f"{output_name} (from {name})"
+                        output_name = remove_sdh_cc_text(output_name)
+                        if 'SDH' in name.upper() or 'CC' in name.upper():
+                            output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
                     all_track_names = all_track_names + [output_name if output_name else full_language]
                     all_track_forced = all_track_forced + [forced]
         else:
@@ -760,9 +760,9 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
                 else:
                     output_name = name if name else ''
                 if remove_sdh:
-                    output_name = re.sub(r'\s+', ' ', re.sub(r'\(?\bSDH\b\)?', '', output_name, flags=re.IGNORECASE)).strip()
-                    if 'SDH' in name.upper():
-                        output_name = f"{output_name} (from {name})"
+                    output_name = remove_sdh_cc_text(output_name)
+                    if 'SDH' in name.upper() or 'CC' in name.upper():
+                        output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
                 output_name_b64 = base64.b64encode(output_name.encode("utf-8")).decode("utf-8")
                 original_subtitle = f"{base}_{forced}_'{original_name_b64}'_{track_id}_{language}.{original_extension}"
                 final_subtitle = f"{base}_{forced}_'{output_name_b64}'_{track_id}_{language}.srt"
@@ -913,6 +913,7 @@ def get_wanted_subtitle_tracks(debug, file_info, pref_langs):
     main_audio_language_subs_only = check_config(config, 'subtitles', 'main_audio_language_subs_only')
     always_remove_sdh = check_config(config, 'subtitles', 'always_remove_sdh')
     only_keep_one_matching_subtitle = check_config(config, 'subtitles', 'only_keep_one_matching_subtitle')
+    remove_commentary_track = check_config(config, 'audio', 'remove_commentary')
 
     total_subs_tracks = 0
     pref_subs_langs = pref_langs
@@ -1077,6 +1078,8 @@ def get_wanted_subtitle_tracks(debug, file_info, pref_langs):
                     add_track = True
                 elif subs_track_languages.count(track_language) > 0 and not only_keep_one_matching_subtitle:
                     add_track = True
+                if 'commentary' in track_name.lower() and remove_commentary_track:
+                    add_track = False
 
                 if not forced_track and add_track:
                     if track["codec"] == "HDMV PGS":
