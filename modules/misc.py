@@ -1434,6 +1434,16 @@ config = {
         'radarr_api_key': get_config('integrations', 'RADARR_API_KEY', variables_defaults),
         'sonarr_url': get_config('integrations', 'SONARR_URL', variables_defaults),
         'sonarr_api_key': get_config('integrations', 'SONARR_API_KEY', variables_defaults),
+    },
+    'media-encoder': {
+        'enable_media_encoder': get_config('media-encoder', 'ENABLE_MEDIA_ENCODER', variables_defaults).lower() == "true",
+        'crop_values': get_config('media-encoder', 'CROP_VALUES', variables_defaults),
+        'output_codec': get_config('media-encoder', 'OUTPUT_CODEC', variables_defaults),
+        'quality_crf': get_config('media-encoder', 'QUALITY_CRF', variables_defaults),
+        'encoding_speed': get_config('media-encoder', 'ENCODING_SPEED', variables_defaults),
+        'limit_resolution': get_config('media-encoder', 'LIMIT_RESOLUTION', variables_defaults),
+        'tune': get_config('media-encoder', 'TUNE', variables_defaults),
+        'custom_params': get_config('media-encoder', 'CUSTOM_PARAMS', variables_defaults),
     }
 }
 

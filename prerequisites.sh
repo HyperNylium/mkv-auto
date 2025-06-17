@@ -43,7 +43,10 @@ DEBIAN_FRONTEND=noninteractive apt-get install tzdata -y
 
 # Installing packages required for SubtitleEdit to work + other remaining packages
 $SUDO apt-get install mono-complete libhunspell-dev libmpv-dev tesseract-ocr \
-  vlc ffmpeg libgtk2.0-0 libsndfile1 libcanberra-gtk-module git xvfb x11-utils -y
+  vlc ffmpeg libgtk2.0-0 libsndfile1 libcanberra-gtk-module git xvfb x11-utils flatpak -y
+
+# Installing HandBrakeCLI
+$SUDO flatpak install fr.handbrake.ghb
 
 # Create a Python virtual environment (venv) and activate it
 python3 -m venv venv
