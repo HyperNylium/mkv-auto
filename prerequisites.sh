@@ -43,10 +43,27 @@ DEBIAN_FRONTEND=noninteractive apt-get install tzdata -y
 
 # Installing packages required for SubtitleEdit to work + other remaining packages
 $SUDO apt-get install mono-complete libhunspell-dev libmpv-dev tesseract-ocr \
-  vlc ffmpeg libgtk2.0-0 libsndfile1 libcanberra-gtk-module git xvfb x11-utils flatpak -y
+  vlc ffmpeg libgtk2.0-0 libsndfile1 libcanberra-gtk-module git xvfb x11-utils wget flatpak -y
 
-# Installing HandBrakeCLI
-$SUDO flatpak install fr.handbrake.ghb
+# Installing HandBrakeCLI from source
+$SUDO apt-get install -y \
+  autoconf automake build-essential cmake git libass-dev libbz2-dev \
+  libfontconfig-dev libfreetype-dev libfribidi-dev libharfbuzz-dev \
+  libjansson-dev liblzma-dev libmp3lame-dev libnuma-dev libogg-dev \
+  libopus-dev libsamplerate0-dev libspeex-dev libtheora-dev libtool \
+  libtool-bin libturbojpeg0-dev libvorbis-dev libx264-dev libxml2-dev \
+  libvpx-dev m4 make meson nasm ninja-build patch pkg-config tar zlib1g-dev \
+  curl libssl-dev clang
+# Clone and build HandBrakeCLI
+git clone https://github.com/HandBrake/HandBrake.git HandBrake
+cd HandBrake
+./configure --disable-gtk --enable-cli
+cd build
+make -j"$(nproc)"
+$SUDO cp HandBrakeCLI /usr/local/bin/
+cd ../..
+# Clean up
+rm -rf HandBrake
 
 # Create a Python virtual environment (venv) and activate it
 python3 -m venv venv
