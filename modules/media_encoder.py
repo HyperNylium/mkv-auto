@@ -297,6 +297,21 @@ def encode_media_files(logger, debug, input_files, dirpath):
     quality_crf = check_config(config, 'media-encoder', 'quality_crf')
     max_cpu_usage = check_config(config, 'general', 'max_cpu_usage')
 
+    crop_values = check_config(config, 'media-encoder', 'crop_values')
+    limit_resolution = check_config(config, 'media-encoder', 'limit_resolution')
+    encoding_speed = check_config(config, 'media-encoder', 'encoding_speed')
+    tune = check_config(config, 'media-encoder', 'tune')
+    custom_params = check_config(config, 'media-encoder', 'custom_params')
+
+    log_debug(logger, f"[MEDIA-ENCODER] Output codec: '{output_codec}'")
+    log_debug(logger, f"[MEDIA-ENCODER] Quality CRF: '{quality_crf}'")
+    log_debug(logger, f"[MEDIA-ENCODER] Max CPU usage: '{max_cpu_usage}'")
+    log_debug(logger, f"[MEDIA-ENCODER] Crop values: '{crop_values}'")
+    log_debug(logger, f"[MEDIA-ENCODER] Limit resolution: '{limit_resolution}'")
+    log_debug(logger, f"[MEDIA-ENCODER] Encoding speed: '{encoding_speed}'")
+    log_debug(logger, f"[MEDIA-ENCODER] Tune: '{tune}'")
+    log_debug(logger, f"[MEDIA-ENCODER] Custom parameters: '{custom_params}'")
+
     max_worker_threads = get_worker_thread_count()
     num_workers = max(1, max_worker_threads)
 
@@ -316,7 +331,7 @@ def encode_media_files(logger, debug, input_files, dirpath):
     display_codec = codec_map.get(output_codec.lower(), output_codec)
 
     header = "MEDIA-ENCODER"
-    description = f"Encode media to CRF{quality_crf}-{display_codec}"
+    description = f"Encode media to {display_codec} CRF-{quality_crf}"
 
     print_with_progress(logger, 0, total_files, header=header, description=description)
 
