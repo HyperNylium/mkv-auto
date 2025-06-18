@@ -330,7 +330,7 @@ def encode_media_files(logger, debug, input_files, dirpath):
     }
     display_codec = codec_map.get(output_codec.lower(), output_codec)
 
-    header = "MEDIA-ENCODER"
+    header = "FFMPEG"
     description = f"Encode media to {display_codec} CRF-{quality_crf}"
 
     print_with_progress(logger, 0, total_files, header=header, description=description)
