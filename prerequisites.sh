@@ -57,6 +57,7 @@ $SUDO apt-get install -y \
 # Clone and build HandBrakeCLI
 git clone https://github.com/HandBrake/HandBrake.git HandBrake
 cd HandBrake
+git checkout 1.9.2
 ./configure --disable-gtk --enable-cli
 cd build
 make -j"$(nproc)"

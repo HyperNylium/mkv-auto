@@ -60,7 +60,7 @@ if "%runtime%"=="1" (
     echo.
     docker run --rm -it -v "%cd%:/mkv-auto/files" philiptn/mkv-auto:%custom_tag% --docker %move_flag%
 ) else (
-    docker build -t mkv-auto-local . >nul 2>nul
+    docker build -t mkv-auto-local .
     echo.
     docker run --rm -it -v "%cd%:/mkv-auto/files" mkv-auto-local --docker %move_flag%
 )

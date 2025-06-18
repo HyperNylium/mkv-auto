@@ -79,7 +79,7 @@ def calculate_output_dimensions(cropped_width, cropped_height, desired_ar):
     return output_width, output_height, pad_left, pad_right, pad_top, pad_bottom, scale
 
 
-def encode_single_video_file(logger, debug, input_file, dirpath):
+def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
     crop_values = check_config(config, 'media-encoder', 'crop_values')
     limit_resolution = check_config(config, 'media-encoder', 'limit_resolution')
     output_codec = check_config(config, 'media-encoder', 'output_codec')
@@ -87,7 +87,6 @@ def encode_single_video_file(logger, debug, input_file, dirpath):
     encoding_speed = check_config(config, 'media-encoder', 'encoding_speed')
     tune = check_config(config, 'media-encoder', 'tune')
     custom_params = check_config(config, 'media-encoder', 'custom_params')
-    max_cpu_usage = check_config(config, 'general', 'max_cpu_usage')
 
     media_file = os.path.join(dirpath, input_file)
 
@@ -171,6 +170,8 @@ def encode_single_video_file(logger, debug, input_file, dirpath):
     # https://obsproject.com/forum/threads/can-you-please-explain-x264-option-threads.76917/
     if codec.lower() == "libx264":
         number_of_threads = min(16, number_of_threads)
+    log_debug(logger, f"File '{input_file}' will use {number_of_threads} threads with {codec}. "
+                      f"CPU usage alloc {cpu_usage_percentage}%")
 
     # Get original dimensions
     orig_width, orig_height = get_video_dimensions(media_file)
@@ -294,6 +295,17 @@ def encode_media_files(logger, debug, input_files, dirpath):
     total_files = len(input_files)
     output_codec = check_config(config, 'media-encoder', 'output_codec')
     quality_crf = check_config(config, 'media-encoder', 'quality_crf')
+    max_cpu_usage = check_config(config, 'general', 'max_cpu_usage')
+
+    max_worker_threads = get_worker_thread_count()
+    num_workers = max(1, max_worker_threads)
+
+    if output_codec == 'h265':
+        num_workers = min(2, num_workers)
+    elif output_codec == 'h264':
+        num_workers = min(4, num_workers)
+
+    per_file_cpu = float(max_cpu_usage) / num_workers
 
     codec_map = {
         'h265': 'H.265',
@@ -304,13 +316,13 @@ def encode_media_files(logger, debug, input_files, dirpath):
     display_codec = codec_map.get(output_codec.lower(), output_codec)
 
     header = "MEDIA-ENCODER"
-    description = f"Encode media to {display_codec} (CRF {quality_crf})"
+    description = f"Encode media to CRF{quality_crf}-{display_codec}"
 
     print_with_progress(logger, 0, total_files, header=header, description=description)
 
     # Use ThreadPoolExecutor to handle multithreading
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        futures = {executor.submit(encode_single_video_file, logger, debug, input_file, dirpath): index for
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = {executor.submit(encode_single_video_file, logger, debug, input_file, dirpath, per_file_cpu): index for
                    index, input_file in enumerate(input_files)}
         for completed_count, future in enumerate(concurrent.futures.as_completed(futures), 1):
             print_with_progress(logger, completed_count, total_files, header=header, description=description)
