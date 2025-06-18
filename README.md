@@ -8,6 +8,7 @@ A fully automatic media processing tool that processes media files based on user
 - Remove any audio or subtitle tracks from video that does not match user preferences
 - Automatically download missing subtitles languages using [Subliminal](https://github.com/Diaoul/subliminal) (default enabled)
 - Generate audio tracks in various codec and channel configurations (DTS, AAC, AC3, 5.1, 2.0 etc.)
+- Encode video to various output codecs (H.265, H.265, AV1, VP9) using optimized encoding parameters and more
 - Convert any picture-based subtitles (BluRay/DVD) to SupRip (SRT) using SubtitleEdit and a custom Tesseract OCR library ([alex-p](https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr5))
 - Convert Advanced SubStation Alpha (ASS) and MP4 (tx3g) subtitles to SRT using Python libraries and FFmpeg
 - Remove SDH (such as `[PHONE RINGING]` or `*DOG GROWLING*`) from SRT subtitles (default enabled)
@@ -193,6 +194,9 @@ To process existing TV Shows, simply delete them in Sonarr (without deleting fil
 
 FFmpeg (for converting audio/subtitle streams and general handling of video containers)  
 https://ffmpeg.org/
+
+HandBrakeCLI (for getting auto-crop values in media-encoder)  
+https://handbrake.fr/docs/en/latest/developer/install-dependencies-ubuntu.html
 
 MKVToolNix (for managing MKV files, extracting, merging, file info, etc.)  
 https://mkvtoolnix.download/
