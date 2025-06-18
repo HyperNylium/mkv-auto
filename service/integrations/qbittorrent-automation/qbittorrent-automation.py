@@ -30,9 +30,16 @@ log = logging.getLogger()
 QBITTORRENT_URL = os.getenv('QBITTORRENT_URL', '').rstrip('/')
 QBITTORRENT_USERNAME = os.getenv('QBITTORRENT_USERNAME')
 QBITTORRENT_PASSWORD = os.getenv('QBITTORRENT_PASSWORD')
-TARGET_TAGS = [tag.strip() for tag in os.getenv('TARGET_TAGS', '').split(',') if tag.strip()]
+try:
+    TARGETS = json.loads(os.getenv("TARGETS", "{}"))
+    if not isinstance(TARGETS, dict):
+        raise ValueError("TARGETS must be a JSON object mapping tags to destination folders.")
+except Exception as e:
+    log.error(f"❌ Failed to parse TARGETS env variable: {e}")
+    TARGETS = {}
+
+TARGET_TAGS = list(TARGETS.keys())
 DONE_TAG = os.getenv('DONE_TAG', '✅')
-DESTINATION_FOLDER = os.getenv('DESTINATION_FOLDER')
 MAPPINGS_FILE = os.getenv('MAPPINGS_FILE')
 TRANSLATE_WINDOWS_PATHS = os.getenv('TRANSLATE_WINDOWS_PATHS', 'false').lower() == 'true'
 
@@ -142,7 +149,14 @@ def translate_path(windows_path, mappings):
 def copy_torrent_content(torrent, mappings):
     try:
         source = translate_path(os.path.join(torrent['save_path'], torrent['name']), mappings)
-        destination = os.path.join(DESTINATION_FOLDER, torrent['name'])
+
+        matched_tag = next((tag for tag in torrent.get('tags', '').split(',') if tag in TARGETS), None)
+        if not matched_tag:
+            log.warning(f"⚠️ No matching tag in TARGETS for torrent '{torrent['name']}', skipping.")
+            return
+
+        destination_folder = TARGETS[matched_tag]
+        destination = os.path.join(destination_folder, torrent['name'])
 
         if os.path.exists(destination):
             log.warning(f"⚠️ Destination already exists, skipping: {destination}")
@@ -153,8 +167,8 @@ def copy_torrent_content(torrent, mappings):
             shutil.copytree(source, destination)
         elif os.path.isfile(source):
             log.info(f"📄 Copying file: {source} -> {destination}")
-            os.makedirs(os.path.dirname(destination), exist_ok=True)  # Make parent directories
-            shutil.copy2(source, destination)  # Copy file to destination path
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            shutil.copy2(source, destination)
         else:
             log.error(f"❌ Source does not exist: {source}")
 
@@ -200,9 +214,8 @@ def main():
     log.info("🚀 Starting qBittorrent Automation Service")
     log.info(f"🌐 QBITTORRENT_URL = {QBITTORRENT_URL}")
     log.info(f"👤 QBITTORRENT_USERNAME = {QBITTORRENT_USERNAME}")
-    log.info(f"🏷️ TARGET_TAGS = {', '.join(TARGET_TAGS)}")
+    log.info(f"🎯 TARGETS = {json.dumps(TARGETS, indent=2)}")
     log.info(f"🏷️ DONE_TAG = {DONE_TAG}")
-    log.info(f"📂 DESTINATION_FOLDER = {DESTINATION_FOLDER}")
     log.info(f"🗺️ MAPPINGS_FILE = {MAPPINGS_FILE}")
     log.info(f"🧩 TRANSLATE_WINDOWS_PATHS = {TRANSLATE_WINDOWS_PATHS}\n")
 
