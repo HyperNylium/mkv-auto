@@ -796,13 +796,14 @@ def reformat_filename(filename, names_only, full_info_found, is_extra):
     hdr_pattern = re.compile(r"2160p| HDR|.HDR")
     pattern_4k = re.compile(r" 4K|.4K")
     non_hdr_pattern = re.compile(r"h264|x264", re.IGNORECASE)
+    non_4k_pattern = re.compile(r"1080p|720p", re.IGNORECASE)
 
     # Regular expression to detect editions: {edition-Director's Cut}, etc.
     edition_pattern = re.compile(r"{edition-(.*?)}", re.IGNORECASE)
 
     # Check for patterns
     is_hdr = hdr_pattern.search(filename) and not non_hdr_pattern.search(filename)
-    is_4k = pattern_4k.search(filename) and not non_hdr_pattern.search(filename)
+    is_4k = pattern_4k.search(filename) and not non_4k_pattern.search(filename)
 
     # Try to find an edition in the filename
     edition_match = edition_pattern.search(filename)

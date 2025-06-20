@@ -1780,23 +1780,21 @@ def repack_tracks_in_mkv(debug, filename, audio_tracks, subtitle_tracks):
 
     sub_files_list = []
     audio_files_list = []
+
     final_sub_filetypes = []
     final_sub_languages = []
     final_sub_track_ids = []
     final_sub_track_names = []
     final_sub_track_forced = []
+
+    initial_audio_filetypes = audio_tracks['audio_extensions']
+    initial_audio_languages = audio_tracks['audio_langs']
+    initial_audio_track_ids = audio_tracks['audio_ids']
+
     final_audio_filetypes = []
     final_audio_languages = []
     final_audio_track_ids = []
     final_audio_track_names = []
-
-    # Initialize first_pref_audio_index to -1 (indicating no match found yet)
-    first_pref_audio_index = -1
-    # Iterate through pref_audio_langs to find the first matching language in audio_languages
-    for i, lang in enumerate(pref_audio_langs):
-        if lang in final_audio_languages:
-            first_pref_audio_index = i
-            break
 
     # If the first preferred language is found in the audio languages,
     # reorder the list to place the preferred language first
@@ -1948,13 +1946,15 @@ def repack_tracks_in_mkv(debug, filename, audio_tracks, subtitle_tracks):
     os.remove(filename)
     shutil.move(temp_filename, filename)
 
+    # Audio files cleanup
     if audio_filetypes:
-        for index, filetype in enumerate(final_audio_filetypes):
+        for index, filetype in enumerate(initial_audio_filetypes):
             try:
-                final_audio_language = pycountry.languages.get(alpha_3=final_audio_languages[index]).alpha_2
+                initial_audio_language = pycountry.languages.get(alpha_3=initial_audio_languages[index]).alpha_2
             except:
-                final_audio_language = final_audio_languages[index][:-1]
-            os.remove(f"{base}.{final_audio_track_ids[index]}.{final_audio_language}.{filetype}")
+                initial_audio_language = initial_audio_languages[index][:-1]
+            os.remove(f"{base}.{initial_audio_track_ids[index]}.{initial_audio_language}.{filetype}")
+    # Subtitle files cleanup
     if sub_filetypes:
         # Need to add the .idx file as well to filetypes list for final deletion
         for index, filetype in enumerate(final_sub_filetypes):

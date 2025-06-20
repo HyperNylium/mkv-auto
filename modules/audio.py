@@ -593,7 +593,7 @@ def get_wanted_audio_tracks(debug, file_info, pref_audio_langs, remove_commentar
                     compatibility_audio_track_codecs.append(audio_codec)
                     add_track = False
 
-                if not only_keep_one_matching_audio_track:
+                if not only_keep_one_matching_audio_track or audio_track_languages.count(track_language) == 0:
                     add_track = True
 
                 if add_track:
