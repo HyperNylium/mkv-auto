@@ -249,6 +249,12 @@ def remove_sdh_worker(debug, input_file, remove_music, subtitleedit):
         current_replacements = find_and_replace(subtitle_tmp, 'ocr-replacements/replacements_srt_only.csv', input_file)
         os.remove(subtitle_tmp)
         replacements = replacements + current_replacements
+    elif language == 'nor':
+        current_replacements = find_and_replace(input_file, 'ocr-replacements/replacements_srt_nor_only.csv', subtitle_tmp)
+        replacements = replacements + current_replacements
+        current_replacements = find_and_replace(subtitle_tmp, 'ocr-replacements/replacements_srt_only.csv', input_file)
+        os.remove(subtitle_tmp)
+        replacements = replacements + current_replacements
     else:
         current_replacements = find_and_replace(input_file, 'ocr-replacements/replacements_srt_only.csv', subtitle_tmp)
         os.rename(subtitle_tmp, input_file)
