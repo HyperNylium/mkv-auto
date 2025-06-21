@@ -1,4 +1,5 @@
 @echo off
+:main
 
 :: Ask runtime option
 echo Runtime options:
@@ -13,7 +14,7 @@ if "%runtime%"=="" set runtime=%default_runtime%
 :: Validate runtime choice
 if "%runtime%" NEQ "1" if "%runtime%" NEQ "2" if "%runtime%" NEQ "3" (
     echo Invalid choice. Please select 1, 2 or 3.
-    goto :eof
+    goto end
 )
 
 :: If custom tag is selected, ask for tag only
@@ -25,7 +26,7 @@ if "%runtime%"=="2" (
     if not defined custom_tag (
         echo No tag entered. Exiting.
         pause
-        goto :eof
+        goto end
     )
 )
 
@@ -47,7 +48,7 @@ if "%action%"=="1" (
     set "move_flag="
 ) else (
     echo Invalid choice. Please select 1 or 2.
-    goto :eof
+    goto end
 )
 
 :: Perform selected actions
@@ -65,7 +66,8 @@ if "%runtime%"=="1" (
     docker run --rm -it -v "%cd%:/mkv-auto/files" mkv-auto-local --docker %move_flag%
 )
 
-:: End script
-echo Press any key to exit...
-pause >nul
-exit
+:end
+set /p choice="Press Enter to restart or 'q' to quit: "
+if /i "%choice%"=="q" exit
+echo.
+goto main

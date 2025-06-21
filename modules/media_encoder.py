@@ -286,9 +286,9 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
         basename = pattern.sub('', basename)
     cleaned_filename = os.path.join(dirpath, basename + '.mkv')
     os.rename(temp_file, cleaned_filename)
-
     os.rename(cleaned_filename, media_file)
-    os.remove(cleaned_filename)
+    if cleaned_filename != media_file:
+        os.remove(cleaned_filename)
 
 
 def encode_media_files(logger, debug, input_files, dirpath):
