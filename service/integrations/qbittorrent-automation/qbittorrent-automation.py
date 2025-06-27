@@ -157,19 +157,25 @@ def copy_torrent_content(torrent, mappings):
             return
 
         destination_folder = TARGETS[matched_tag]
-        destination = os.path.join(destination_folder, torrent['name'])
+        final_destination = os.path.join(destination_folder, torrent['name'])
 
-        if os.path.exists(destination):
-            log.warning(f"⚠️ Destination already exists, skipping: {destination}")
+        if os.path.exists(final_destination):
+            log.warning(f"⚠️ Destination already exists, skipping: {final_destination}")
             return
 
+        # Use dot-prefixed temp folder in the same destination directory
+        temp_name = f".{torrent['name']}.partial"
+        temp_destination = os.path.join(destination_folder, temp_name)
+
         if os.path.isdir(source):
-            log.info(f"📂 Copying folder: {source} -> {destination}")
-            shutil.copytree(source, destination)
+            log.info(f"📂 Copying folder: {source} -> {temp_destination}")
+            shutil.copytree(source, temp_destination)
+            os.rename(temp_destination, final_destination)
         elif os.path.isfile(source):
-            log.info(f"📄 Copying file: {source} -> {destination}")
-            os.makedirs(os.path.dirname(destination), exist_ok=True)
-            shutil.copy2(source, destination)
+            log.info(f"📄 Copying file: {source} -> {temp_destination}")
+            os.makedirs(os.path.dirname(temp_destination), exist_ok=True)
+            shutil.copy2(source, temp_destination)
+            os.rename(temp_destination, final_destination)
         else:
             log.error(f"❌ Source does not exist: {source}")
 
