@@ -29,20 +29,30 @@ def get_video_dimensions(filename):
 
 def auto_crop(file):
     try:
-        hb_output = subprocess.check_output(f'HandBrakeCLI -i "{file}" --scan -t 0', stderr=subprocess.STDOUT,
-                                            shell=True).decode()
+        hb_output = subprocess.check_output(
+            f'HandBrakeCLI -i "{file}" --scan -t 0',
+            stderr=subprocess.STDOUT,
+            shell=True
+        ).decode()
+
         autocrop_str = re.search(r"\+ autocrop: (.+)", hb_output).group(1)
         top, bottom, left, right = map(int, autocrop_str.split('/'))
 
+        # Get max values for vertical and horizontal crop
+        vertical_crop = max(top, bottom)
+        horizontal_crop = max(left, right)
+
         # Ensure values are multiples of 4
-        top = 4 * (top // 4)
-        bottom = 4 * (bottom // 4)
-        left = 4 * (left // 4)
-        right = 4 * (right // 4)
+        vertical_crop = 4 * (vertical_crop // 4)
+        horizontal_crop = 4 * (horizontal_crop // 4)
+
+        top = bottom = vertical_crop
+        left = right = horizontal_crop
 
         return f"{left},{right},{top},{bottom}"
+
     except Exception as e:
-        return f"0,0,0,0"
+        return "0,0,0,0"
 
 
 def calculate_output_dimensions(cropped_width, cropped_height, desired_ar):
