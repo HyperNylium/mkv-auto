@@ -377,9 +377,9 @@ def convert_ass_to_srt(subtitle_files, main_audio_track_lang):
             else:
                 full_language = pycountry.languages.get(alpha_3=language)
                 if full_language:
-                    output_name = name if name else full_language.name
+                    output_name = name if name != 'Original' else full_language.name
                 else:
-                    output_name = name if name else ''
+                    output_name = name if name != 'Original' else ''
                 if remove_sdh:
                     output_name = remove_sdh_cc_text(output_name)
                     if 'SDH' in name.upper() or 'CC' in name.upper():
@@ -640,6 +640,14 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
             else:
                 full_language = ''
             if keep_original_subtitles:
+                base_lang_id_name_forced, _, original_extension = original_file.rpartition('.')
+                base_id_name_forced, _, language = base_lang_id_name_forced.rpartition('_')
+                base_name_forced, _, track_id = base_id_name_forced.rpartition('_')
+                base_forced, _, name_encoded = base_name_forced.rpartition('_')
+                name_encoded = name_encoded.strip("'") if name_encoded.startswith("'") and name_encoded.endswith(
+                    "'") else name_encoded
+                original_name = base64.b64decode(name_encoded).decode("utf-8")
+
                 updated_sub_filetypes = updated_sub_filetypes + ['srt', original_extension]
                 output_subtitles = output_subtitles + [output_subtitle]
                 subtitles_all = subtitles_all + [output_subtitle, original_file]
@@ -656,7 +664,7 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
                         output_name = remove_sdh_cc_text(output_name)
                         if 'SDH' in name.upper() or 'CC' in name.upper():
                             output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
-                    all_track_names = all_track_names + [output_name if output_name else full_language, name if name else "Original"]
+                    all_track_names = all_track_names + [output_name if output_name else full_language, original_name if original_name else "Original"]
                     all_track_forced = all_track_forced + [forced, forced]
             else:
                 updated_sub_filetypes = updated_sub_filetypes + ['srt']
@@ -752,7 +760,6 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
                 original_name_b64 = name_encoded
             else:
                 original_name_b64 = base64.b64encode('Original'.encode("utf-8")).decode("utf-8")
-                name = 'Original'
 
             if forced == '1':
                 output_name = f'non-{main_audio_track_lang} dialogue'
@@ -762,9 +769,9 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
             else:
                 full_language = pycountry.languages.get(alpha_3=language)
                 if full_language:
-                    output_name = name if name else full_language.name
+                    output_name = name if name != 'Original' else full_language.name
                 else:
-                    output_name = name if name else ''
+                    output_name = name if name != 'Original' else ''
                 if remove_sdh:
                     output_name = remove_sdh_cc_text(output_name)
                     if 'SDH' in name.upper() or 'CC' in name.upper():
@@ -781,7 +788,7 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
                 final_subtitle = 'ERROR'
             elif not is_valid_srt(final_subtitle):
                 final_subtitle = 'ERROR'
-                name = 'ERROR'
+                output_name = 'ERROR'
                 forced = 'ERROR'
                 track_id = 'ERROR'
                 original_extension = 'ERROR'
@@ -828,7 +835,7 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
                 if remove_sdh:
                     new_name = remove_sdh_cc_text(new_name)
 
-            name = new_name
+            output_name = new_name
             name_b64 = base64.b64encode(new_name.encode("utf-8")).decode("utf-8")
             original_subtitle = f"{base}_{forced}_'{name_b64}'_{track_id}_{language}.{original_extension}"
             os.rename(file, original_subtitle)
@@ -836,7 +843,7 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
         # Clean up the temporary directory
         shutil.rmtree(temp_dir)
 
-    return original_subtitle, final_subtitle, language, track_id, name, forced, replacements, original_extension
+    return original_subtitle, final_subtitle, language, track_id, output_name, forced, replacements, original_extension
 
 
 def get_subtitle_tracks_metadata_lists(subtitle_files, max_threads):
@@ -1132,57 +1139,61 @@ def get_wanted_subtitle_tracks(debug, file_info, pref_langs):
                         needs_convert = True
                         needs_processing = True
                 else:
-                    if track["codec"] != "SubRip/SRT" and not forced_track and add_track:
-                        if 'srt' in sub_filetypes:
-                            for index, lang in enumerate(subs_track_languages):
-                                if lang == track_language:
-                                    sub_filetypes.pop(index)
-                                    subs_track_languages.pop(index)
-                                    subs_track_ids.pop(index)
-                                    subs_track_names.pop(index)
-                                    subs_track_forced.pop(index)
-                        if track["codec"] == "HDMV PGS":
-                            if sub_filetypes:
-                                if sub_filetypes[-1] != 'sup':
+                    if track["codec"] != "SubRip/SRT" and not forced_track:
+                        add_track = True
+                        if only_keep_one_matching_subtitle and sub_filetypes in ("sup", "sub", "ass"):
+                            add_track = False
+                        if add_track:
+                            if 'srt' in sub_filetypes:
+                                for index, lang in enumerate(subs_track_languages):
+                                    if lang == track_language:
+                                        sub_filetypes.pop(index)
+                                        subs_track_languages.pop(index)
+                                        subs_track_ids.pop(index)
+                                        subs_track_names.pop(index)
+                                        subs_track_forced.pop(index)
+                            if track["codec"] == "HDMV PGS":
+                                if sub_filetypes:
+                                    if sub_filetypes[-1] != 'sup':
+                                        subs_track_forced.append(forced_track_val)
+                                        sub_filetypes.append('sup')
+                                        subs_track_ids.append(track["id"])
+                                        subs_track_languages.append(track_language)
+                                        subs_track_names.append(track_name)
+                                elif not sub_filetypes:
                                     subs_track_forced.append(forced_track_val)
                                     sub_filetypes.append('sup')
                                     subs_track_ids.append(track["id"])
                                     subs_track_languages.append(track_language)
                                     subs_track_names.append(track_name)
-                            elif not sub_filetypes:
-                                subs_track_forced.append(forced_track_val)
-                                sub_filetypes.append('sup')
-                                subs_track_ids.append(track["id"])
-                                subs_track_languages.append(track_language)
-                                subs_track_names.append(track_name)
-                            needs_convert = True
-                            needs_processing = True
+                                needs_convert = True
+                                needs_processing = True
 
-                        elif track["codec"] == "SubStationAlpha":
-                            if sub_filetypes:
-                                if sub_filetypes[-1] != 'ass':
+                            elif track["codec"] == "SubStationAlpha":
+                                if sub_filetypes:
+                                    if sub_filetypes[-1] != 'ass':
+                                        subs_track_forced.append(forced_track_val)
+                                        sub_filetypes.append('ass')
+                                        subs_track_ids.append(track["id"])
+                                        subs_track_languages.append(track_language)
+                                        subs_track_names.append(track_name)
+                                elif not sub_filetypes:
                                     subs_track_forced.append(forced_track_val)
                                     sub_filetypes.append('ass')
                                     subs_track_ids.append(track["id"])
                                     subs_track_languages.append(track_language)
                                     subs_track_names.append(track_name)
-                            elif not sub_filetypes:
+                                needs_convert = True
+                                needs_processing = True
+
+                            elif track["codec"] == "VobSub":
                                 subs_track_forced.append(forced_track_val)
-                                sub_filetypes.append('ass')
+                                sub_filetypes.append('sub')
                                 subs_track_ids.append(track["id"])
                                 subs_track_languages.append(track_language)
                                 subs_track_names.append(track_name)
-                            needs_convert = True
-                            needs_processing = True
-
-                        elif track["codec"] == "VobSub":
-                            subs_track_forced.append(forced_track_val)
-                            sub_filetypes.append('sub')
-                            subs_track_ids.append(track["id"])
-                            subs_track_languages.append(track_language)
-                            subs_track_names.append(track_name)
-                            needs_convert = True
-                            needs_processing = True
+                                needs_convert = True
+                                needs_processing = True
 
     # Add the forced subtitle tracks
     if forced_subtitles_priority.lower() == 'last':
