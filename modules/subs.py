@@ -383,7 +383,8 @@ def convert_ass_to_srt(subtitle_files, main_audio_track_lang):
                 if remove_sdh:
                     output_name = remove_sdh_cc_text(output_name)
                     if 'SDH' in name.upper() or 'CC' in name.upper():
-                        output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
+                        if "(from " not in output_name:
+                            output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
 
                 output_name_b64 = base64.b64encode(output_name.encode("utf-8")).decode("utf-8")
                 original_subtitle = f"{base}_{forced}_'{original_name_b64}'_{track_id}_{language}.{original_extension}"
@@ -660,10 +661,6 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
                     all_track_forced = all_track_forced + [1, 0]
                 else:
                     output_name = name
-                    if remove_sdh_pref:
-                        output_name = remove_sdh_cc_text(output_name)
-                        if 'SDH' in name.upper() or 'CC' in name.upper():
-                            output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
                     all_track_names = all_track_names + [output_name if output_name else full_language, original_name if original_name else "Original"]
                     all_track_forced = all_track_forced + [forced, forced]
             else:
@@ -677,10 +674,6 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
                     all_track_forced = all_track_forced + [1]
                 else:
                     output_name = name
-                    if remove_sdh_pref:
-                        output_name = remove_sdh_cc_text(output_name)
-                        if 'SDH' in name.upper() or 'CC' in name.upper():
-                            output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
                     all_track_names = all_track_names + [output_name if output_name else full_language]
                     all_track_forced = all_track_forced + [forced]
         else:
@@ -775,7 +768,8 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
                 if remove_sdh:
                     output_name = remove_sdh_cc_text(output_name)
                     if 'SDH' in name.upper() or 'CC' in name.upper():
-                        output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
+                        if "(from " not in output_name:
+                            output_name = "{} (from {})".format(output_name, re.sub(r'[\[\]\(\)]', '', name))
                 output_name_b64 = base64.b64encode(output_name.encode("utf-8")).decode("utf-8")
                 original_subtitle = f"{base}_{forced}_'{original_name_b64}'_{track_id}_{language}.{original_extension}"
                 final_subtitle = f"{base}_{forced}_'{output_name_b64}'_{track_id}_{language}.srt"

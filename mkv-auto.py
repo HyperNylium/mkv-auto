@@ -293,7 +293,7 @@ def mkv_auto(args):
             filenames_mkv_only = remove_clutter_process(logger, debug, filenames_mkv_only, dirpath)
             all_filenames = filenames_mkv_only + filenames_covers
             if enable_media_encoder:
-                encode_media_files(logger, debug, filenames_mkv_only, dirpath)
+                filenames_mkv_only = encode_media_files(logger, debug, filenames_mkv_only, dirpath)
             move_files_to_output_process(logger, debug, all_filenames, dirpath, all_dirnames, output_dir, errored)
 
             end_time = time.time()
@@ -322,7 +322,7 @@ def mkv_auto(args):
             errored = True
             # If anything were to fail, move files to output folder
             if filenames_mkv_only:
-                custom_print(logger, f"{RED}[ERROR]{RESET} An unknown error occured. Moving unprocessed"
+                custom_print(logger, f"{RED}[ERROR]{RESET} An unknown error occured. Moving unprocessed "
                                      f"{print_multi_or_single(len(filenames_mkv_only), 'file')} to destination folder...\n{e}")
                 custom_print(logger, traceback.print_tb(e.__traceback__))
                 move_files_to_output_process(logger, debug, filenames_mkv_only, dirpath, all_dirnames, output_dir, errored)

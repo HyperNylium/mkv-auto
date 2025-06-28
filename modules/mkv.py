@@ -1543,7 +1543,7 @@ def move_files_to_output_process(logger, debug, input_files, dirpath, all_dirnam
 
     header = "INFO"
     if errored:
-        description = f"Move audio-filtered-only {print_multi_or_single(total_files, 'file')} to destination folder"
+        description = f"Move unprocessed {print_multi_or_single(total_files, 'file')} to destination folder"
     else:
         description = f"Move {print_multi_or_single(total_files, 'file')} to destination folder"
 

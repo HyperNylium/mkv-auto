@@ -43,7 +43,18 @@ DEBIAN_FRONTEND=noninteractive apt-get install tzdata -y
 
 # Installing packages required for SubtitleEdit to work + other remaining packages
 $SUDO apt-get install mono-complete libhunspell-dev libmpv-dev tesseract-ocr \
-  vlc ffmpeg libgtk2.0-0 libsndfile1 libcanberra-gtk-module git xvfb x11-utils wget flatpak -y
+  vlc libgtk2.0-0 libsndfile1 libcanberra-gtk-module git xvfb x11-utils wget flatpak -y
+
+# Install static build of ffmpeg 7.1
+current_dir=$(pwd)
+mkdir -p ffmpeg_static_install
+cd ffmpeg_static_install
+wget -O ffmpeg.tar.xz https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-06-27-14-04/ffmpeg-n7.1.1-54-g6400860b9d-linux64-gpl-7.1.tar.xz
+tar -xf ffmpeg.tar.xz
+cd ffmpeg-*/bin
+$SUDO cp ffmpeg ffprobe /usr/local/bin
+cd $current_dir
+rm -rf ffmpeg_static_install
 
 # Installing HandBrakeCLI from source
 $SUDO apt-get install -y \
@@ -54,7 +65,9 @@ $SUDO apt-get install -y \
   libtool-bin libturbojpeg0-dev libvorbis-dev libx264-dev libxml2-dev \
   libvpx-dev m4 make meson nasm ninja-build patch pkg-config tar zlib1g-dev \
   curl libssl-dev clang
+
 # Clone and build HandBrakeCLI
+current_dir=$(pwd)
 git clone https://github.com/HandBrake/HandBrake.git HandBrake
 cd HandBrake
 git checkout 1.9.2
@@ -62,7 +75,7 @@ git checkout 1.9.2
 cd build
 make -j"$(nproc)"
 $SUDO cp HandBrakeCLI /usr/local/bin/
-cd ../..
+cd $current_dir
 # Clean up
 rm -rf HandBrake
 

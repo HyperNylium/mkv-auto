@@ -122,7 +122,7 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
         'h265': 'libx265',
         'hevc': 'libx265',
         'vp9': 'libvpx-vp9',
-        'av1': 'libaom-av1'
+        'av1': 'libsvtav1'
     }
 
     # Define encoder-specific options
@@ -145,7 +145,7 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
             'options': [],
             'pix_fmt': None,
         },
-        'libaom-av1': {
+        'libsvtav1': {
             'options': [],
             'pix_fmt': None,
         },
@@ -236,7 +236,7 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
     elif codec == 'libvpx-vp9':
         # For VP9, use '-cpu-used'
         cmd_ffmpeg.extend(['-cpu-used', encoder_speed])
-    elif codec == 'libaom-av1':
+    elif codec == 'libsvtav1':
         # For AV1, also use '-cpu-used'
         cmd_ffmpeg.extend(['-cpu-used', encoder_speed])
 
@@ -256,18 +256,30 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
         # A simple split() handles space-delimited arguments
         cmd_ffmpeg.extend(user_custom_ffmpeg.split())
 
-    cmd_ffmpeg.append(temp_video_file)
-    log_debug(logger, f"[MEDIA-ENCODER] FFmpeg command: {cmd_ffmpeg}")
-    subprocess.run(cmd_ffmpeg, check=True, text=True, capture_output=True)
+    try:
+        cmd_ffmpeg.append(temp_video_file)
+        log_debug(logger, f"[MEDIA-ENCODER] FFmpeg command: '{' '.join(cmd_ffmpeg)}'")
+        subprocess.run(cmd_ffmpeg, check=True, text=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        custom_print(logger, f"{RED}[ERROR]{RESET} FFmpeg failed with return code {e.returncode}")
+        custom_print(logger, f"{RED}[STDERR]{RESET}\n{YELLOW}{e.stderr.strip()}{RESET}")
+        custom_print(logger, f"{RED}[STDOUT]{RESET}\n{YELLOW}{e.stdout.strip()}{RESET}")
+        raise
 
-    cmd_mkvmerge = [
-        'mkvmerge',
-        '-o', temp_file,
-        temp_video_file,
-        '--no-video', media_file
-    ]
-    log_debug(logger, f"[MEDIA-ENCODER] MKVMERGE command: {cmd_mkvmerge}")
-    subprocess.run(cmd_mkvmerge, check=True, text=True, capture_output=True)
+    try:
+        cmd_mkvmerge = [
+            'mkvmerge',
+            '-o', temp_file,
+            temp_video_file,
+            '--no-video', media_file
+        ]
+        log_debug(logger, f"[MEDIA-ENCODER] MKVMERGE command: '{' '.join(cmd_mkvmerge)}'")
+        subprocess.run(cmd_mkvmerge, check=True, text=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        custom_print(logger, f"{RED}[ERROR]{RESET} MKVMERGE failed with return code {e.returncode}")
+        custom_print(logger, f"{RED}[STDERR]{RESET}\n{YELLOW}{e.stderr.strip()}{RESET}")
+        custom_print(logger, f"{RED}[STDOUT]{RESET}\n{YELLOW}{e.stdout.strip()}{RESET}")
+        raise
 
     # Cleanup
     os.remove(temp_video_file)
@@ -282,7 +294,7 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
         'libx264': 'x264',
         'libx265': 'x265',
         'libvpx-vp9': 'VP9',
-        'libaom-av1': 'AV1'
+        'libsvtav1': 'AV1'
     }
     codec_display_name = codec_display_name_map.get(codec)
     basename = os.path.splitext(os.path.basename(input_file))[0]
@@ -296,13 +308,17 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
         basename = pattern.sub('', basename)
     cleaned_filename = os.path.join(dirpath, basename + '.mkv')
     os.rename(temp_file, cleaned_filename)
-    os.rename(cleaned_filename, media_file)
     if cleaned_filename != media_file:
-        os.remove(cleaned_filename)
+        if os.path.exists(media_file):
+            os.remove(media_file)
+
+    return cleaned_filename
 
 
 def encode_media_files(logger, debug, input_files, dirpath):
     total_files = len(input_files)
+    updated_filenames = [None] * total_files
+
     output_codec = check_config(config, 'media-encoder', 'output_codec')
     quality_crf = check_config(config, 'media-encoder', 'quality_crf')
     max_cpu_usage = check_config(config, 'general', 'max_cpu_usage')
@@ -323,7 +339,7 @@ def encode_media_files(logger, debug, input_files, dirpath):
     log_debug(logger, f"[MEDIA-ENCODER] Custom parameters: '{custom_params}'")
 
     max_worker_threads = get_worker_thread_count()
-    num_workers = max(1, max_worker_threads)
+    num_workers = min(max_worker_threads, total_files)
 
     if output_codec == 'h265':
         num_workers = min(2, num_workers)
@@ -353,9 +369,13 @@ def encode_media_files(logger, debug, input_files, dirpath):
             print_with_progress(logger, completed_count, total_files, header=header, description=description)
             try:
                 index = futures[future]
+                updated_filename = future.result()
+                if updated_filename is not None:
+                    updated_filenames[index] = updated_filename
             except Exception as e:
                 # Print the error and traceback
                 custom_print(logger, f"\n{RED}[ERROR]{RESET} {e}")
                 traceback_str = ''.join(traceback.format_tb(e.__traceback__))
                 print_no_timestamp(logger, f"\n{RED}[TRACEBACK]{RESET}\n{traceback_str}")
                 raise
+    return updated_filenames
