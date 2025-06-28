@@ -306,11 +306,9 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
     for substring in remove_substrings:
         pattern = re.compile(re.escape(substring), re.IGNORECASE)
         basename = pattern.sub('', basename)
-    cleaned_filename = os.path.join(dirpath, basename + '.mkv')
-    os.rename(temp_file, cleaned_filename)
-    if cleaned_filename != media_file:
-        if os.path.exists(media_file):
-            os.remove(media_file)
+    cleaned_filename = os.path.join(basename + '.mkv')
+
+    os.rename(temp_file, os.path.join(dirpath, cleaned_filename))
 
     return cleaned_filename
 

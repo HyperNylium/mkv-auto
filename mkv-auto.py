@@ -291,9 +291,11 @@ def mkv_auto(args):
                 repack_mkv_tracks_process(logger, debug, filenames_mkv_only, dirpath, audio_tracks_to_be_merged, subtitle_tracks_to_be_merged)
 
             filenames_mkv_only = remove_clutter_process(logger, debug, filenames_mkv_only, dirpath)
-            all_filenames = filenames_mkv_only + filenames_covers
+
             if enable_media_encoder:
                 filenames_mkv_only = encode_media_files(logger, debug, filenames_mkv_only, dirpath)
+
+            all_filenames = filenames_mkv_only + filenames_covers
             move_files_to_output_process(logger, debug, all_filenames, dirpath, all_dirnames, output_dir, errored)
 
             end_time = time.time()
