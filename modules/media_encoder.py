@@ -105,6 +105,7 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
     left = right = top = bottom = 0
     if crop_values == 'auto':
         perform_auto_crop = True
+        cropping = True
     else:
         left, right, top, bottom = map(int, crop_values.split(','))
         cropping = True
