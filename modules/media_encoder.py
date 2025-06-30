@@ -5,6 +5,7 @@ import re
 import shutil  # Added to enable directory removal
 import platform
 import time
+import math
 import concurrent.futures
 
 from modules.misc import *
@@ -42,9 +43,9 @@ def auto_crop(file):
         vertical_crop = max(top, bottom)
         horizontal_crop = max(left, right)
 
-        # Ensure values are multiples of 4
-        vertical_crop = 4 * (vertical_crop // 4)
-        horizontal_crop = 4 * (horizontal_crop // 4)
+        # Round up to nearest multiple of 4
+        vertical_crop = int(math.ceil(vertical_crop / 4.0)) * 4
+        horizontal_crop = int(math.ceil(horizontal_crop / 4.0)) * 4
 
         top = bottom = vertical_crop
         left = right = horizontal_crop
@@ -100,14 +101,15 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
 
     media_file = os.path.join(dirpath, input_file)
 
-    cropping = False
     perform_auto_crop = False
     left = right = top = bottom = 0
-    if crop_values == 'auto':
-        perform_auto_crop = True
+    if crop_values:
+        left, right, top, bottom = map(int, crop_values.split(','))
         cropping = True
     else:
-        left, right, top, bottom = map(int, crop_values.split(','))
+        cropping = False
+    if crop_values == 'auto':
+        perform_auto_crop = True
         cropping = True
 
     resizing = False

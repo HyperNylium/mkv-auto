@@ -21,6 +21,7 @@ import concurrent.futures
 from tqdm import tqdm
 import base64
 import signal
+import psutil
 
 from modules.misc import *
 
@@ -85,33 +86,40 @@ def find_and_replace(input_file, replacement_file, output_file):
 
 def get_active_xvfb_displays():
     active_displays = set()
-    try:
-        command = "pgrep Xvfb | xargs -I{} ps -p {} -o args | grep -oP '(?<=:)\d+'"
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, text=True)
-        for line in result.stdout.splitlines():
-            try:
-                display_number = int(line)
-                active_displays.add(display_number)
-            except ValueError:
-                continue
-    except Exception as e:
-        print(f"Error while checking active Xvfb displays: {e}")
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        try:
+            if proc.info['name'] == 'Xvfb' and proc.info['cmdline']:
+                for arg in proc.info['cmdline']:
+                    match = re.match(r":(\d+)", arg)
+                    if match:
+                        active_displays.add(int(match.group(1)))
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
     return active_displays
 
 
-def find_available_display():
-    while True:
-        with x11_lock:
-            active_displays = get_active_xvfb_displays()
-            display_number = random.randint(50, 9000)
-            if display_number not in reserved_displays and display_number not in active_displays:
-                reserved_displays.add(display_number)
-                return display_number
+def wait_for_display(display_number, timeout=5):
+    lock_path = f"/tmp/.X{display_number}-lock"
+    start_time = time.time()
+    while not os.path.exists(lock_path):
+        if time.time() - start_time > timeout:
+            raise TimeoutError(f"Xvfb display :{display_number} did not become ready in time.")
+        time.sleep(0.1)
+
+
+def find_available_display(start=99, end=199):
+    with x11_lock:
+        active = get_active_xvfb_displays()
+        for display in range(start, end):
+            if display not in active and display not in reserved_displays:
+                reserved_displays.add(display)
+                return display
+        raise RuntimeError("No available Xvfb displays.")
 
 
 def release_display(display_number):
     with x11_lock:
-        reserved_displays.remove(display_number)
+        reserved_displays.discard(display_number)
 
 
 def _monitor_memory_usage(xvfb_pid, cmd_pid, limit_bytes):
@@ -149,7 +157,6 @@ def _monitor_memory_usage(xvfb_pid, cmd_pid, limit_bytes):
 
 
 def run_with_xvfb(command, memory_per_thread):
-    time.sleep(random.uniform(0.5, 1.5))
     display_number = find_available_display()
 
     xvfb_process = None
@@ -161,8 +168,13 @@ def run_with_xvfb(command, memory_per_thread):
                     "-ac", "-nolisten", "tcp", "-nolisten", "unix"]
         xvfb_process = subprocess.Popen(
             xvfb_cmd,
-            preexec_fn=os.setsid
+            preexec_fn=os.setsid,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
+
+        wait_for_display(display_number)
 
         # Set the DISPLAY environment variable
         env = os.environ.copy()
@@ -195,8 +207,12 @@ def run_with_xvfb(command, memory_per_thread):
             os.killpg(os.getpgid(xvfb_process.pid), signal.SIGTERM)
             xvfb_process.wait()
 
-        return return_code
-
+        if return_code == 0:
+            return return_code
+        else:
+            return (f"{GREEN}XVFB COMMAND:{RESET} {YELLOW}'{xvfb_cmd}'{RESET}, "
+                    f"{GREEN}MAIN COMMAND:{RESET} {YELLOW}'{command}'{RESET}"
+                    f", {RED}ERROR: '{stderr}'{RESET}")
     except:
         # Clean up on error
         if xvfb_process and xvfb_process.poll() is None:
@@ -260,7 +276,9 @@ def remove_sdh_worker(debug, input_file, remove_music, subtitleedit):
         os.rename(subtitle_tmp, input_file)
         replacements = replacements + current_replacements
 
-    run_with_xvfb(command, 1)
+    result = run_with_xvfb(command, 0.5)
+    if result != 0:
+        print(result)
     os.remove(input_file)
     shutil.move(f"{input_file}_tmp.srt", input_file)
 
