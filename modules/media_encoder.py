@@ -103,14 +103,14 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
 
     perform_auto_crop = False
     left = right = top = bottom = 0
-    if crop_values:
+    if crop_values == 'auto':
+        perform_auto_crop = True
+        cropping = True
+    elif crop_values and crop_values != 'auto':
         left, right, top, bottom = map(int, crop_values.split(','))
         cropping = True
     else:
         cropping = False
-    if crop_values == 'auto':
-        perform_auto_crop = True
-        cropping = True
 
     resizing = False
     custom_width = -2
