@@ -107,7 +107,7 @@ def wait_for_display(display_number, timeout=5):
         time.sleep(0.1)
 
 
-def find_available_display(start=99, end=199):
+def find_available_display(start=100, end=999):
     with x11_lock:
         active = get_active_xvfb_displays()
         for display in range(start, end):
@@ -156,9 +156,7 @@ def _monitor_memory_usage(xvfb_pid, cmd_pid, limit_bytes):
         time.sleep(1)
 
 
-def run_with_xvfb(command, memory_per_thread):
-    display_number = find_available_display()
-
+def run_with_xvfb(command, memory_per_thread, display_number):
     xvfb_process = None
     command_process = None
 
@@ -210,7 +208,9 @@ def run_with_xvfb(command, memory_per_thread):
         if return_code == 0:
             return return_code
         else:
+            active = get_active_xvfb_displays()
             return (f"{GREEN}XVFB COMMAND:{RESET} {YELLOW}'{xvfb_cmd}'{RESET}, "
+                    f"{GREEN}ACTIVE DISPLAYS:{RESET} {YELLOW}'{active}'{RESET}, "
                     f"{GREEN}MAIN COMMAND:{RESET} {YELLOW}'{command}'{RESET}"
                     f", {RED}ERROR: '{stderr}'{RESET}")
     except:
@@ -225,7 +225,7 @@ def run_with_xvfb(command, memory_per_thread):
         release_display(display_number)
 
 
-def remove_sdh_worker(debug, input_file, remove_music, subtitleedit):
+def remove_sdh_worker(debug, input_file, remove_music, subtitleedit, display_number):
     base_lang_id_name_forced, _, original_extension = input_file.rpartition('.')
     base_id_name_forced, _, language = base_lang_id_name_forced.rpartition('_')
     base_name_forced, _, track_id = base_id_name_forced.rpartition('_')
@@ -276,7 +276,7 @@ def remove_sdh_worker(debug, input_file, remove_music, subtitleedit):
         os.rename(subtitle_tmp, input_file)
         replacements = replacements + current_replacements
 
-    result = run_with_xvfb(command, 0.5)
+    result = run_with_xvfb(command, 0.5, display_number)
     if result != 0:
         print(result)
     os.remove(input_file)
@@ -327,7 +327,7 @@ def remove_sdh_worker(debug, input_file, remove_music, subtitleedit):
     return replacements
 
 
-def remove_sdh(max_threads, debug, input_files, remove_music, track_names, external_sub):
+def remove_sdh(max_threads, debug, input_files, remove_music, track_names, external_sub, display_numbers):
     subtitleedit = 'utilities/SubtitleEdit/SubtitleEdit.exe'
     all_replacements = []
     cleaned_track_names = []
@@ -336,7 +336,7 @@ def remove_sdh(max_threads, debug, input_files, remove_music, track_names, exter
         print('\n')
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        tasks = [executor.submit(remove_sdh_worker, debug, input_file, remove_music, subtitleedit)
+        tasks = [executor.submit(remove_sdh_worker, debug, input_file, remove_music, subtitleedit, display_numbers[i])
                  for i, input_file in enumerate(input_files)]
         concurrent.futures.wait(tasks)  # Wait for all tasks to complete
 
@@ -614,7 +614,7 @@ def get_output_subtitle_string(filename, track_numbers, output_filetypes, subs_l
     return subtitle_filenames
 
 
-def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_audio_track_lang):
+def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_audio_track_lang, display_numbers):
     subtitleedit_dir = 'utilities/SubtitleEdit'
     all_replacements = []
     keep_original_subtitles = check_config(config, 'subtitles', 'keep_original_subtitles')
@@ -629,7 +629,8 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         # Submit all tasks and store futures in a dictionary with their index
         future_to_index = {
-            executor.submit(ocr_subtitle_worker, memory_per_thread, debug, subtitle_files[i], main_audio_track_lang, subtitleedit_dir): i
+            executor.submit(ocr_subtitle_worker, memory_per_thread, debug, subtitle_files[i],
+                            main_audio_track_lang, subtitleedit_dir, display_numbers[i]): i
             for i in range(len(subtitle_files))
         }
 
@@ -716,7 +717,7 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
             all_track_forced, updated_sub_filetypes, all_replacements, errored_ocr, missing_subs_langs)
 
 
-def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, subtitleedit_dir):
+def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, subtitleedit_dir, display_number):
     ocr_languages = check_config(config, 'subtitles', 'ocr_languages')
     remove_sdh = check_config(config, 'subtitles', 'always_remove_sdh')
     replacements = []
@@ -762,7 +763,7 @@ def ocr_subtitle_worker(memory_per_thread, debug, file, main_audio_track_lang, s
             if debug:
                 print(f"{GREY}[UTC {get_timestamp()}] {YELLOW}{' '.join(command)}{RESET}")
 
-            result_code = run_with_xvfb(command, memory_per_thread)
+            result_code = run_with_xvfb(command, memory_per_thread, display_number)
 
             output_subtitle = f"{base}_{forced}_'{name_encoded}'_{track_id}_{language}.srt"
             subtitle_tmp = f"{base}_{forced}_'{name_encoded}'_{track_id}_{language}_tmp.srt"
