@@ -99,7 +99,13 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
     tune = check_config(config, 'media-encoder', 'tune')
     custom_params = check_config(config, 'media-encoder', 'custom_params')
 
+    filesize_info = {
+        "initial_file_size": 0,
+        "resulting_file_size": 0
+    }
+
     media_file = os.path.join(dirpath, input_file)
+    filesize_info["initial_file_size"] = os.path.getsize(media_file)
 
     perform_auto_crop = False
     left = right = top = bottom = 0
@@ -312,13 +318,15 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
     cleaned_filename = os.path.join(basename + '.mkv')
 
     os.rename(temp_file, os.path.join(dirpath, cleaned_filename))
+    filesize_info["resulting_file_size"] = os.path.getsize(os.path.join(dirpath, cleaned_filename))
 
-    return cleaned_filename
+    return cleaned_filename, filesize_info
 
 
 def encode_media_files(logger, debug, input_files, dirpath):
     total_files = len(input_files)
     updated_filenames = [None] * total_files
+    filesizes_info = [None] * total_files
 
     output_codec = check_config(config, 'media-encoder', 'output_codec')
     quality_crf = check_config(config, 'media-encoder', 'quality_crf')
@@ -370,13 +378,40 @@ def encode_media_files(logger, debug, input_files, dirpath):
             print_with_progress(logger, completed_count, total_files, header=header, description=description)
             try:
                 index = futures[future]
-                updated_filename = future.result()
+                updated_filename, filesize_info = future.result()
                 if updated_filename is not None:
                     updated_filenames[index] = updated_filename
+                if filesize_info is not None:
+                    filesizes_info[index] = filesize_info
             except Exception as e:
                 # Print the error and traceback
                 custom_print(logger, f"\n{RED}[ERROR]{RESET} {e}")
                 traceback_str = ''.join(traceback.format_tb(e.__traceback__))
                 print_no_timestamp(logger, f"\n{RED}[TRACEBACK]{RESET}\n{traceback_str}")
                 raise
+
+    # Calculate total initial and resulting sizes
+    total_initial_size = sum(info["initial_file_size"] for info in filesizes_info if info)
+    total_resulting_size = sum(info["resulting_file_size"] for info in filesizes_info if info)
+
+    savings_percent = 0
+    if total_initial_size > 0:
+        savings_bytes = total_initial_size - total_resulting_size
+        savings_percent = int((savings_bytes / total_initial_size) * 100)
+
+    if savings_percent > 0:
+        def format_size(bytes_val):
+            gb = bytes_val // (1024 ** 3)
+            if gb >= 1:
+                return f"{gb}GB"
+            else:
+                mb = bytes_val // (1024 ** 2)
+                return f"{mb}MB"
+
+        formatted_initial = format_size(total_initial_size)
+        formatted_result = format_size(total_resulting_size)
+
+        print()
+        custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Total savings: {savings_percent}% ({formatted_initial} → {formatted_result})")
+
     return updated_filenames

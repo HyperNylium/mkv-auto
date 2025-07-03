@@ -618,7 +618,6 @@ def ocr_subtitles(max_threads, memory_per_thread, debug, subtitle_files, main_au
     subtitleedit_dir = 'utilities/SubtitleEdit'
     all_replacements = []
     keep_original_subtitles = check_config(config, 'subtitles', 'keep_original_subtitles')
-    remove_sdh_pref = check_config(config, 'subtitles', 'always_remove_sdh')
 
     if debug:
         print('\n')

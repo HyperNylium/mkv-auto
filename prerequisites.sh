@@ -66,11 +66,12 @@ $SUDO apt-get install -y \
   libvpx-dev m4 make meson nasm ninja-build patch pkg-config tar zlib1g-dev \
   curl libssl-dev clang
 
-# Clone and build HandBrakeCLI
+# Build HandBrakeCLI from source
+handbrake_version="1.9.2"
 current_dir=$(pwd)
-git clone https://github.com/HandBrake/HandBrake.git HandBrake
-cd HandBrake
-git checkout 1.9.2
+wget -O HandBrake.tar.gz https://github.com/HandBrake/HandBrake/archive/refs/tags/${handbrake_version}.tar.gz
+tar -xf HandBrake.tar.gz
+cd HandBrake-*
 ./configure --disable-gtk --enable-cli
 cd build
 make -j"$(nproc)"
