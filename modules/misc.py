@@ -381,8 +381,7 @@ def print_multi_or_single(amount, string):
 
 
 def remove_sdh_cc_text(text):
-    # Pattern to match variations like (SDH), [CC], sdh, CC, etc.
-    pattern = r'[\[\(]?\b(SDH|CC)\b[\]\)]?'
+    pattern = r'[\[\(]?\b(SDH|CC)(?:\s*/\s*[A-Z]+)?\b[\]\)]?'
     # Replace matched patterns with empty string and normalize whitespace
     cleaned = re.sub(r'\s+', ' ', re.sub(pattern, '', text, flags=re.IGNORECASE)).strip()
     return cleaned
