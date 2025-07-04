@@ -69,8 +69,8 @@ $SUDO apt-get install -y \
 # Build HandBrakeCLI from source
 handbrake_version="1.9.2"
 current_dir=$(pwd)
-wget -O HandBrake.tar.gz https://github.com/HandBrake/HandBrake/archive/refs/tags/${handbrake_version}.tar.gz
-tar -xf HandBrake.tar.gz
+wget -O HandBrake.tar.bz2 https://github.com/HandBrake/HandBrake/releases/download/${handbrake_version}/HandBrake-${handbrake_version}-source.tar.bz2
+tar -xvjf HandBrake.tar.bz2
 cd HandBrake-*
 ./configure --disable-gtk --enable-cli
 cd build

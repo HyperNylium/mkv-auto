@@ -925,6 +925,7 @@ def remove_sdh_process(logger, debug, subtitle_files_to_process_list):
     max_worker_threads = get_worker_thread_count()
     num_workers = max(1, max_worker_threads)
     internal_threads = max(1, max_worker_threads // num_workers)
+    a, memory_per_thread, b = get_max_ocr_threads()
 
     display_numbers_list = []
     for subtitle_group in subtitle_files_to_process_list:
@@ -943,7 +944,8 @@ def remove_sdh_process(logger, debug, subtitle_files_to_process_list):
 
     # Use ThreadPoolExecutor to handle multithreading
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = {executor.submit(remove_sdh_process_worker, debug, list, internal_threads, display_numbers_list[index]): index for index, list in
+        futures = {executor.submit(remove_sdh_process_worker, debug, list, internal_threads,
+                                   display_numbers_list[index], memory_per_thread): index for index, list in
                    enumerate(subtitle_files_to_process_list)}
 
         for completed_count, future in enumerate(concurrent.futures.as_completed(futures), 1):
@@ -971,14 +973,15 @@ def remove_sdh_process(logger, debug, subtitle_files_to_process_list):
     return all_replacements_list_count
 
 
-def remove_sdh_process_worker(debug, input_subtitles, internal_threads, display_numbers):
+def remove_sdh_process_worker(debug, input_subtitles, internal_threads, display_numbers, memory_per_thread):
     all_replacements = []
     remove_music = check_config(config, 'subtitles', 'remove_music')
     always_remove_sdh = check_config(config, 'subtitles', 'always_remove_sdh')
     srt_files = [f for f in input_subtitles if f.endswith('.srt')]
 
     if always_remove_sdh:
-        a, all_replacements = remove_sdh(internal_threads, debug, srt_files, remove_music, [], False, display_numbers)
+        a, all_replacements = remove_sdh(internal_threads, debug, srt_files, remove_music, [],
+                                         False, display_numbers, memory_per_thread)
     return all_replacements
 
 

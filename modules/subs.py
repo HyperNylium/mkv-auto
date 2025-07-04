@@ -117,9 +117,17 @@ def find_available_display(start=100, end=999):
         raise RuntimeError("No available Xvfb displays.")
 
 
-def release_display(display_number):
+def release_display(display_number, timeout=5):
+    lock_path = f"/tmp/.X{display_number}-lock"
     with x11_lock:
         reserved_displays.discard(display_number)
+
+    # Wait for the lock file to disappear
+    start_time = time.time()
+    while os.path.exists(lock_path):
+        if time.time() - start_time > timeout:
+            raise TimeoutError(f"Display :{display_number} lock file was not removed in time.")
+        time.sleep(0.1)
 
 
 def _monitor_memory_usage(xvfb_pid, cmd_pid, limit_bytes):
@@ -225,7 +233,7 @@ def run_with_xvfb(command, memory_per_thread, display_number):
         release_display(display_number)
 
 
-def remove_sdh_worker(debug, input_file, remove_music, subtitleedit, display_number):
+def remove_sdh_worker(debug, input_file, remove_music, subtitleedit, display_number, memory_per_thread):
     base_lang_id_name_forced, _, original_extension = input_file.rpartition('.')
     base_id_name_forced, _, language = base_lang_id_name_forced.rpartition('_')
     base_name_forced, _, track_id = base_id_name_forced.rpartition('_')
@@ -276,7 +284,7 @@ def remove_sdh_worker(debug, input_file, remove_music, subtitleedit, display_num
         os.rename(subtitle_tmp, input_file)
         replacements = replacements + current_replacements
 
-    result = run_with_xvfb(command, 0.5, display_number)
+    result = run_with_xvfb(command, memory_per_thread, display_number)
     if result != 0:
         print(result)
     os.remove(input_file)
@@ -327,7 +335,7 @@ def remove_sdh_worker(debug, input_file, remove_music, subtitleedit, display_num
     return replacements
 
 
-def remove_sdh(max_threads, debug, input_files, remove_music, track_names, external_sub, display_numbers):
+def remove_sdh(max_threads, debug, input_files, remove_music, track_names, external_sub, display_numbers, memory_per_thread):
     subtitleedit = 'utilities/SubtitleEdit/SubtitleEdit.exe'
     all_replacements = []
     cleaned_track_names = []
@@ -336,7 +344,8 @@ def remove_sdh(max_threads, debug, input_files, remove_music, track_names, exter
         print('\n')
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        tasks = [executor.submit(remove_sdh_worker, debug, input_file, remove_music, subtitleedit, display_numbers[i])
+        tasks = [executor.submit(remove_sdh_worker, debug, input_file, remove_music,
+                                 subtitleedit, display_numbers[i], memory_per_thread)
                  for i, input_file in enumerate(input_files)]
         concurrent.futures.wait(tasks)  # Wait for all tasks to complete
 
