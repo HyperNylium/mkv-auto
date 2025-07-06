@@ -99,7 +99,7 @@ def mkv_auto(args):
                 remaining_files = wait_for_stable_files(input_dir)
                 if done_info['skipped_files'] > 0:
                     break
-            actual_total_file_sizes = get_folder_size_gb(temp_dir)
+            actual_total_file_sizes = get_folder_size(temp_dir)
         else:
             remaining_files = wait_for_stable_files(input_dir)
             total_files_input += count_files(input_dir)
