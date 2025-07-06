@@ -15,6 +15,7 @@ import threading
 import psutil
 import base64
 import requests
+import math
 
 # ANSI color codes
 BLUE = '\033[94m'
@@ -378,6 +379,21 @@ def print_multi_or_single(amount, string):
         return f"{string}s"
     else:
         return string
+
+
+def format_size(bytes_val, space):
+    gb_val = bytes_val / (1024 ** 3)
+    if gb_val >= 1:
+        if space:
+            return f"{gb_val:.2f} GB"
+        else:
+            return f"{round(gb_val)}GB"
+    else:
+        mb_val = bytes_val / (1024 ** 2)
+        if space:
+            return f"{mb_val:.2f} MB"
+        else:
+            return f"{round(mb_val)}MB"
 
 
 def remove_sdh_cc_text(text):

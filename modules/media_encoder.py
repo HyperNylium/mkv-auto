@@ -407,16 +407,8 @@ def encode_media_files(logger, debug, input_files, dirpath):
         savings_percent = int((savings_bytes / total_initial_size) * 100)
 
     if savings_percent > 0:
-        def format_size(bytes_val):
-            gb = bytes_val // (1024 ** 3)
-            if gb >= 1:
-                return f"{gb}GB"
-            else:
-                mb = bytes_val // (1024 ** 2)
-                return f"{mb}MB"
-
-        formatted_initial = format_size(total_initial_size)
-        formatted_result = format_size(total_resulting_size)
+        formatted_initial = format_size(total_initial_size, False)
+        formatted_result = format_size(total_resulting_size, False)
 
         custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Total savings: {savings_percent}% ({formatted_initial} → {formatted_result})")
 

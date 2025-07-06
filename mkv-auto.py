@@ -115,16 +115,16 @@ def mkv_auto(args):
 
         if done_info['skipped_files'] == 0:
             custom_print(logger, f"{GREY}[INFO]{RESET} "
-                                 f"Successfully {method} {actual_total_file_sizes:.2f} GB to TEMP.")
+                                 f"Successfully {method} {format_size(actual_total_file_sizes, True)} to TEMP.")
         elif done_info['skipped_files'] > 0:
             custom_print(logger, f"{GREY}[INFO]{RESET} "
-                                 f"Successfully {method} {actual_total_file_sizes:.2f} GB to TEMP.")
+                                 f"Successfully {method} {format_size(actual_total_file_sizes, True)} to TEMP.")
             custom_print(logger,
                          f"{GREY}[INFO]{RESET} {done_info['skipped_files']} {print_multi_or_single(done_info['skipped_files'], 'file')} "
                          f"had to be skipped due to insufficient storage.")
             custom_print(logger,
-                         f"{GREY}[INFO]{RESET} {done_info['required_space_gib']:.2f} GB would be needed in total (350% of {done_info['actual_file_sizes']:.2f} GB)")
-            custom_print(logger, f"{GREY}[INFO]{RESET} Only {done_info['available_space_gib']:.2f} GB was available in TEMP.")
+                         f"{GREY}[INFO]{RESET} {format_size(done_info['required_space_gib'], True)} would be needed in total (350% of {format_size(done_info['actual_file_sizes'], True)})")
+            custom_print(logger, f"{GREY}[INFO]{RESET} Only {format_size(done_info['available_space_gib'], True)} was available in TEMP.")
 
         extract_archives(logger, temp_dir)
         flatten_season_folders(temp_dir)
