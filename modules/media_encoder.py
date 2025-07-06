@@ -365,6 +365,8 @@ def encode_media_files(logger, debug, input_files, dirpath):
     }
     display_codec = codec_map.get(output_codec.lower(), output_codec)
 
+    start_time = time.time()
+
     header = "FFMPEG"
     description = f"Encode media to {display_codec} CRF-{quality_crf}"
 
@@ -390,6 +392,11 @@ def encode_media_files(logger, debug, input_files, dirpath):
                 print_no_timestamp(logger, f"\n{RED}[TRACEBACK]{RESET}\n{traceback_str}")
                 raise
 
+    end_time = time.time()
+    processing_time = end_time - start_time
+    print()
+    custom_print(logger, f"{GREY}[FFMPEG]{RESET} Encoding time: {format_time(int(processing_time))}")
+
     # Calculate total initial and resulting sizes
     total_initial_size = sum(info["initial_file_size"] for info in filesizes_info if info)
     total_resulting_size = sum(info["resulting_file_size"] for info in filesizes_info if info)
@@ -411,7 +418,6 @@ def encode_media_files(logger, debug, input_files, dirpath):
         formatted_initial = format_size(total_initial_size)
         formatted_result = format_size(total_resulting_size)
 
-        print()
         custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Total savings: {savings_percent}% ({formatted_initial} → {formatted_result})")
 
     return updated_filenames
