@@ -168,6 +168,19 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
     cpu_usage_percentage = float(max_cpu_usage)
     user_custom_ffmpeg = custom_params
 
+    # Map 'medium' and 'slow' to numerical speed values for AV1 and VP9 codecs
+    if encoder_speed.lower() in ('medium', 'slow') and codec in ('libsvtav1', 'libvpx-vp9'):
+        if encoder_speed.lower() == 'medium':
+            if codec == 'libsvtav1':
+                encoder_speed = '6'
+            elif codec == 'libvpx-vp9':
+                encoder_speed = '2'
+        elif encoder_speed.lower() == 'slow':
+            if codec == 'libsvtav1':
+                encoder_speed = '4'
+            elif codec == 'libvpx-vp9':
+                encoder_speed = '0'
+
     # Fine-tune psy-rd if using x264 or x265
     if codec in ['libx264', 'libx265']:
         if codec == 'libx264':
@@ -181,7 +194,7 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
     # CPU threads calculation
     num_cores = os.cpu_count()
     if codec.lower() == "libx265":
-        divisor = 4.5
+        divisor = 4.0
     else:
         divisor = 0.8
     number_of_threads = max(1, int(num_cores * (cpu_usage_percentage / 100) // divisor))
@@ -246,8 +259,8 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
         # For VP9, use '-cpu-used'
         cmd_ffmpeg.extend(['-cpu-used', encoder_speed])
     elif codec == 'libsvtav1':
-        # For AV1, also use '-cpu-used'
-        cmd_ffmpeg.extend(['-cpu-used', encoder_speed])
+        # For AV1, use '-preset'
+        cmd_ffmpeg.extend(['-preset', encoder_speed])
 
     # Add pix_fmt if specified for the codec
     if encoder_options[codec]['pix_fmt']:
@@ -395,7 +408,7 @@ def encode_media_files(logger, debug, input_files, dirpath):
     end_time = time.time()
     processing_time = end_time - start_time
     print()
-    custom_print(logger, f"{GREY}[FFMPEG]{RESET} Encoding time: {format_time(int(processing_time))}")
+    custom_print(logger, f"{GREY}[FFMPEG]{RESET} Encoding time: {format_time_short(int(processing_time))}")
 
     # Calculate total initial and resulting sizes
     total_initial_size = sum(info["initial_file_size"] for info in filesizes_info if info)

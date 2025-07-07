@@ -382,16 +382,29 @@ def print_multi_or_single(amount, string):
 
 
 def format_size(bytes_val, space):
+    tb_val = bytes_val / (1024 ** 4)
     gb_val = bytes_val / (1024 ** 3)
-    if gb_val >= 1:
+    mb_val = bytes_val / (1024 ** 2)
+
+    if tb_val >= 1:
         if space:
-            return f"{gb_val:.2f} GB"
+            return f"{round(tb_val, 2)} TB"
         else:
-            return f"{round(gb_val)}GB"
-    else:
-        mb_val = bytes_val / (1024 ** 2)
+            if tb_val >= 10:
+                return f"{round(tb_val, 1)}TB"
+            else:
+                return f"{round(tb_val, 2)}TB"
+    elif gb_val >= 1:
         if space:
-            return f"{mb_val:.2f} MB"
+            return f"{round(gb_val, 2)} GB"
+        else:
+            if gb_val >= 10:
+                return f"{round(gb_val)}GB"
+            else:
+                return f"{round(gb_val, 1)}GB"
+    else:
+        if space:
+            return f"{round(mb_val, 1)} MB"
         else:
             return f"{round(mb_val)}MB"
 
@@ -669,6 +682,25 @@ def format_time(seconds):
             return f"{seconds} second"
         else:
             return f"{seconds} seconds"
+    else:
+        return " ".join(parts)
+
+
+def format_time_short(seconds):
+    """Return a formatted string for the given duration in seconds."""
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    parts = []
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if seconds or not parts:
+        parts.append(f"{seconds}s")
+
+    if seconds and (not hours and not minutes):
+        return f"{seconds} seconds"
     else:
         return " ".join(parts)
 
