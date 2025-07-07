@@ -404,7 +404,7 @@ def format_size(bytes_val, space):
                 return f"{round(gb_val, 1)}GB"
     else:
         if space:
-            return f"{round(mb_val, 1)} MB"
+            return f"{round(mb_val)} MB"
         else:
             return f"{round(mb_val)}MB"
 
