@@ -194,7 +194,7 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
     # CPU threads calculation
     num_cores = os.cpu_count()
     if codec.lower() == "libx265":
-        divisor = 4.0
+        divisor = 4.3
     else:
         divisor = 0.8
     number_of_threads = max(1, int(num_cores * (cpu_usage_percentage / 100) // divisor))
