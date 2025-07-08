@@ -422,16 +422,13 @@ def encode_media_files(logger, debug, input_files, dirpath):
         formatted_initial = format_size(total_initial_size, False)
         formatted_result = format_size(total_resulting_size, False)
         print()
-        custom_print(logger, f"{GREY}[FFMPEG]{RESET} Encoding time "
-                             f"{savings_color}{get_block_gradient(processing_time)}{RESET}"
-                             f" {format_time_short(int(processing_time))}")
-        custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Total savings "
-                                        f"{savings_color}{get_block_gradient(savings_percent)}{RESET} "
+        custom_print(logger, f"{GREY}[FFMPEG]{RESET} Encoding time: "
+                             f"{format_time_short(int(processing_time))}")
+        custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Total savings: "
                                         f"{savings_percent}% {GREY}|{RESET}{formatted_initial} → {formatted_result}{GREY}|{RESET}")
     else:
         print()
-        custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Encoding time "
-                                        f"{savings_color}{get_block_gradient(processing_time)}{RESET}"
-                                        f" {format_time_short(int(processing_time))}")
+        custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Encoding time: "
+                                        f"{format_time_short(int(processing_time))}")
 
     return updated_filenames
