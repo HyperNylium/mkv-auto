@@ -429,6 +429,7 @@ def encode_media_files(logger, debug, input_files, dirpath):
                                         f"{savings_color}{get_block_gradient(savings_percent)}{RESET} "
                                         f"{savings_percent}% {GREY}|{RESET}{formatted_initial} → {formatted_result}{GREY}|{RESET}")
     else:
+        print()
         custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Encoding time "
                                         f"{savings_color}{get_block_gradient(processing_time)}{RESET}"
                                         f" {format_time_short(int(processing_time))}")
