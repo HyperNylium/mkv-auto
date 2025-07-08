@@ -31,6 +31,7 @@ WHITE = '\033[97m'
 # Unicode symbols
 ACTIVE = RESET
 DONE = RESET
+ERROR = RED
 CHECK = '✓'
 CHECK_BOLD = '✔'
 CROSS = '✗'
@@ -259,13 +260,13 @@ def print_with_progress(logger, current, total, header, description="Processing"
     if total == -1 and SPINNER is not None:
         final_line = (
             f"{GREY}[UTC {get_timestamp()}] [{header}]{RESET} "
-            f"{description} {DONE}{CROSS}{RESET} {' ' * ((len({str(total)}) * 2) + 8)}"
+            f"{description} {ERROR}{CROSS}{RESET} {' ' * ((len({str(total)}) * 2) + 8)}"
         )
         SPINNER.stop(final_line)
         SPINNER = None
         logger.info(f"[UTC {get_timestamp()}] [{header}] {description} {CROSS}")
         logger.debug(f"[UTC {get_timestamp()}] [{header}] {description} {CROSS}")
-        logger.color(f"{GREY}[UTC {get_timestamp()}] [{header}]{RESET} {description} {DONE}{CROSS}{RESET}")
+        logger.color(f"{GREY}[UTC {get_timestamp()}] [{header}]{RESET} {description} {ERROR}{CROSS}{RESET}")
 
     elif current == total and SPINNER is not None:
         final_line = (

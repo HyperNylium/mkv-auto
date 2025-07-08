@@ -200,9 +200,9 @@ def mkv_auto(args):
             max_workers = get_worker_thread_count()
 
             custom_print(logger, f"{GREY}[INFO]{RESET} "
-                                 f"CPU {GREY}{get_block_gradient(psutil.cpu_percent(interval=0.5))}{RESET} {psutil.cpu_percent(interval=0.5):.0f}% "
-                                 f"RAM {GREY}{get_block_gradient(ram_info['percent_ram'])}{RESET} {ram_info['percent_ram']}%")
-            custom_print(logger, f"{GREY}[INFO]{RESET} Using {max_workers} {print_multi_or_single(max_workers, 'worker')} based on system load")
+                                 f"CPU {MAGENTA}{get_block_gradient(psutil.cpu_percent(interval=0.5))} {psutil.cpu_percent(interval=0.5):.0f}%{RESET} "
+                                 f"RAM {MAGENTA}{get_block_gradient(ram_info['percent_ram'])} {ram_info['percent_ram']}%{RESET}")
+            custom_print(logger, f"{GREY}[INFO]{RESET} Using {max_workers} {print_multi_or_single(max_workers, 'worker')} based on system load.")
 
             update_replacement_lists(logger)
             start_time = time.time()

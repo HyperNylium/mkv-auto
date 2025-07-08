@@ -422,7 +422,8 @@ def encode_media_files(logger, debug, input_files, dirpath):
     if savings_percent > 0:
         formatted_initial = format_size(total_initial_size, False)
         formatted_result = format_size(total_resulting_size, False)
+        savings_color = GREEN
 
-        custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Total savings: {savings_percent}% ({formatted_initial} → {formatted_result})")
+        custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Total savings: {savings_color}{get_block_gradient(savings_percent)} {savings_percent}%{RESET} ({formatted_initial} → {formatted_result})")
 
     return updated_filenames
