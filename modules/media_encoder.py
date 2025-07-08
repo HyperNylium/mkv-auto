@@ -429,6 +429,6 @@ def encode_media_files(logger, debug, input_files, dirpath):
 
         custom_print_no_newline(logger, f"{GREY}[FFMPEG]{RESET} Total savings "
                                         f"{savings_color}{get_block_gradient(savings_percent)}{RESET} "
-                                        f"{savings_percent}% ({formatted_initial} → {formatted_result})")
+                                        f"{savings_percent}% {GREY}|{RESET}{formatted_initial} → {formatted_result}{GREY}|{RESET}")
 
     return updated_filenames
