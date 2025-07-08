@@ -30,7 +30,7 @@ WHITE = '\033[97m'
 
 # Unicode symbols
 ACTIVE = RESET
-DONE = GREEN
+DONE = RESET
 ERROR = RED
 CHECK = '✓'
 CHECK_BOLD = '✔'
