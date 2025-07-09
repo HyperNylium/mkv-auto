@@ -107,7 +107,7 @@ def wait_for_display(display_number, timeout=5):
         time.sleep(0.1)
 
 
-def find_available_display(start=100, end=999):
+def find_available_display(start=30, end=999):
     with x11_lock:
         active = get_active_xvfb_displays()
         for display in range(start, end):

@@ -723,8 +723,11 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
     for subtitle_group in subtitle_files_list:
         display_list = []
         for _ in subtitle_group:
-            display_number = find_available_display()
-            display_list.append(display_number)
+            # Allocate two display numbers for each item
+            # to account for ASS -> SRT conversion
+            display_number_1 = find_available_display()
+            display_number_2 = find_available_display()
+            display_list.extend([display_number_1, display_number_2])
         display_numbers_list.append(display_list)
 
     if errored_subs_bool:
