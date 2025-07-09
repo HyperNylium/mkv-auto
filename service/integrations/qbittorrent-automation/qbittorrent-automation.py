@@ -178,9 +178,11 @@ def copy_torrent_content(torrent, mappings):
             os.rename(temp_destination, final_destination)
         else:
             log.error(f"❌ Source does not exist: {source}")
+        return 0
 
     except Exception as e:
         log.error(f"❌ Failed to copy torrent '{torrent['name']}': {e}")
+        return -1
 
 
 def mark_torrent_done(torrent):
@@ -216,6 +218,39 @@ def mark_torrent_done(torrent):
         log.error(f"❌ Exception while setting tags for torrent {torrent['hash']}: {e}")
 
 
+def mark_torrent_failed(torrent):
+    try:
+        torrent_tags = torrent.get('tags', '').split(',')
+        tags_to_remove = [tag for tag in torrent_tags if tag in TARGET_TAGS]
+
+        if tags_to_remove:
+            response = session.post(f"{QBITTORRENT_URL}/api/v2/torrents/removeTags", data={
+                "hashes": torrent['hash'],
+                "tags": ','.join(tags_to_remove)
+            }, timeout=10)
+
+            if response.status_code == 200:
+                log.info(f"✅ Removed {'tag' if len(tags_to_remove) == 1 else 'tags'} '{', '.join(tags_to_remove)}' from torrent {torrent['hash']}")
+            else:
+                log.error(f"❌ Failed to remove tags '{', '.join(tags_to_remove)}' from torrent {torrent['hash']}: {response.status_code} - {response.text}")
+        else:
+            log.info(f"ℹ️ No matching tags to remove for torrent {torrent['hash']}")
+
+        # Add done tag
+        response = session.post(f"{QBITTORRENT_URL}/api/v2/torrents/addTags", data={
+            "hashes": torrent['hash'],
+            "tags": "✘"
+        }, timeout=10)
+
+        if response.status_code == 200:
+            log.info(f"✅ Added tag '✘' to torrent {torrent['hash']}\n")
+        else:
+            log.error(f"❌ Failed to add tag '✘' to torrent {torrent['hash']}: {response.status_code} - {response.text}")
+
+    except Exception as e:
+        log.error(f"❌ Exception while setting tags for torrent {torrent['hash']}: {e}")
+
+
 def main():
     # Startup info
     log.info("🚀 Starting qBittorrent Automation Service")
@@ -238,8 +273,11 @@ def main():
 
             for torrent in torrents:
                 log.info(f"🔍 Processing torrent: {torrent['name']} | Hash: {torrent['hash']}")
-                copy_torrent_content(torrent, mappings)
-                mark_torrent_done(torrent)
+                return_code = copy_torrent_content(torrent, mappings)
+                if return_code == 0:
+                    mark_torrent_done(torrent)
+                else:
+                    mark_torrent_failed(torrent)
 
         except Exception as e:
             log.exception(f"❌ Fatal error in main loop: {e}")
