@@ -101,7 +101,11 @@ def get_active_xvfb_displays():
 def wait_for_display(display_number, timeout=5):
     lock_path = f"/tmp/.X{display_number}-lock"
     start_time = time.time()
-    while not os.path.exists(lock_path):
+    while True:
+        lock_exists = os.path.exists(lock_path)
+        active_displays = get_active_xvfb_displays()
+        if lock_exists and display_number in active_displays:
+            return
         if time.time() - start_time > timeout:
             raise TimeoutError(f"Xvfb display :{display_number} did not become ready in time.")
         time.sleep(0.1)
@@ -167,6 +171,9 @@ def _monitor_memory_usage(xvfb_pid, cmd_pid, limit_bytes):
 def run_with_xvfb(command, memory_per_thread, display_number):
     xvfb_process = None
     command_process = None
+    return_code = -1
+    xvfb_cmd = []
+    stderr = ''
 
     try:
         # Start Xvfb
@@ -196,41 +203,43 @@ def run_with_xvfb(command, memory_per_thread, display_number):
             text=True
         )
 
-        # Start a separate thread to watch memory usage
         monitor_thread = threading.Thread(
             target=_monitor_memory_usage,
-            args=(xvfb_process.pid, command_process.pid, memory_per_thread * 1024 ** 3),  # Use dynamic memory limit
+            args=(xvfb_process.pid, command_process.pid, memory_per_thread * 1024 ** 3),
             daemon=True
         )
         monitor_thread.start()
 
-        # Capture the command's output
         stdout, stderr = command_process.communicate()
         return_code = command_process.returncode
 
-        # Stop Xvfb after the command completes
-        if xvfb_process.poll() is None:
-            os.killpg(os.getpgid(xvfb_process.pid), signal.SIGTERM)
-            xvfb_process.wait()
-
-        if return_code == 0:
-            return return_code
-        else:
-            active = get_active_xvfb_displays()
-            return (f"{GREEN}XVFB COMMAND:{RESET} {YELLOW}'{xvfb_cmd}'{RESET}, "
-                    f"{GREEN}ACTIVE DISPLAYS:{RESET} {YELLOW}'{active}'{RESET}, "
-                    f"{GREEN}MAIN COMMAND:{RESET} {YELLOW}'{command}'{RESET}"
-                    f", {RED}ERROR: '{stderr}'{RESET}")
-    except:
-        # Clean up on error
-        if xvfb_process and xvfb_process.poll() is None:
-            os.killpg(os.getpgid(xvfb_process.pid), signal.SIGTERM)
-        if command_process and command_process.poll() is None:
-            os.killpg(os.getpgid(command_process.pid), signal.SIGTERM)
-        return -1
-
+    except Exception as e:
+        traceback.print_exc()
+        return_code = -1
+        stderr = f"Exception: {str(e)}"
     finally:
+        # Ensure cleanup happens reliably
+        for proc in [command_process, xvfb_process]:
+            if proc and proc.poll() is None:
+                try:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                    time.sleep(1)
+                    if proc.poll() is None:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                    proc.wait()
+                except Exception:
+                    traceback.print_exc()
+
         release_display(display_number)
+
+    # Return details on failure
+    if return_code != 0:
+        active = get_active_xvfb_displays()
+        return (f"{GREEN}XVFB COMMAND:{RESET} {YELLOW}'{xvfb_cmd}'{RESET}, "
+                f"{GREEN}ACTIVE DISPLAYS:{RESET} {YELLOW}'{active}'{RESET}, "
+                f"{GREEN}MAIN COMMAND:{RESET} {YELLOW}'{command}'{RESET}"
+                f", {RED}ERROR: '{stderr}'{RESET}")
+    return return_code
 
 
 def remove_sdh_worker(debug, input_file, remove_music, subtitleedit, display_number, memory_per_thread):

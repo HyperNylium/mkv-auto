@@ -171,14 +171,16 @@ def copy_torrent_content(torrent, mappings):
             log.info(f"📂 Copying folder: {source} -> {temp_destination}")
             shutil.copytree(source, temp_destination)
             os.rename(temp_destination, final_destination)
+            return 0
         elif os.path.isfile(source):
             log.info(f"📄 Copying file: {source} -> {temp_destination}")
             os.makedirs(os.path.dirname(temp_destination), exist_ok=True)
             shutil.copy2(source, temp_destination)
             os.rename(temp_destination, final_destination)
+            return 0
         else:
             log.error(f"❌ Source does not exist: {source}")
-        return 0
+            return -1
 
     except Exception as e:
         log.error(f"❌ Failed to copy torrent '{torrent['name']}': {e}")

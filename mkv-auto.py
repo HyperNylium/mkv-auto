@@ -120,7 +120,7 @@ def mkv_auto(args):
             custom_print(logger, f"{GREY}[INFO]{RESET} "
                                  f"Successfully {method} {format_size(actual_total_file_sizes, True)} to TEMP.")
             custom_print(logger,
-                         f"{GREY}[INFO]{RESET} {done_info['skipped_files']} {print_multi_or_single(done_info['skipped_files'], 'file')} "
+                         f"{GREY}[INFO]{RESET} {done_info['skipped_files']} media {print_multi_or_single(done_info['skipped_files'], 'file')} "
                          f"had to be skipped.")
             custom_print(logger,
                          f"{GREY}[INFO]{RESET} {format_size(done_info['required_space_gib'], True)} needed (350% of {format_size(done_info['actual_file_sizes'], True)})")

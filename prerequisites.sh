@@ -43,7 +43,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install tzdata -y
 
 # Installing packages required for SubtitleEdit to work + other remaining packages
 $SUDO apt-get install mono-complete libhunspell-dev libmpv-dev tesseract-ocr \
-  vlc libgtk2.0-0 libsndfile1 libcanberra-gtk-module git xvfb x11-utils wget flatpak -y
+  vlc libgtk2.0-0 libsndfile1 libcanberra-gtk-module git xvfb x11-utils wget flatpak vim -y
 
 # Install static build of ffmpeg 7.1
 current_dir=$(pwd)

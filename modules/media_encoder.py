@@ -191,6 +191,15 @@ def encode_single_video_file(logger, debug, input_file, dirpath, max_cpu_usage):
                     encoder_options[codec]['options'][i + 1] += ':psy-rd=3:psy-rdoq=3'
                     break
 
+    # Remove 'encoding settings' metadata
+    if codec == 'libx264':
+        encoder_options[codec]['options'].extend(['-x264-params', 'no-info=1'])
+    elif codec == 'libx265':
+        for i, opt in enumerate(encoder_options[codec]['options']):
+            if opt == '-x265-params':
+                encoder_options[codec]['options'][i + 1] += ':no-info=1'
+                break
+
     # CPU threads calculation
     num_cores = os.cpu_count()
     if codec.lower() == "libx265":
@@ -407,7 +416,6 @@ def encode_media_files(logger, debug, input_files, dirpath):
 
     end_time = time.time()
     processing_time = end_time - start_time
-    savings_color = BLUE
 
     # Calculate total initial and resulting sizes
     total_initial_size = sum(info["initial_file_size"] for info in filesizes_info if info)
