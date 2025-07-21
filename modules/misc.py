@@ -446,6 +446,8 @@ def format_audio_preferences_print(audio_format_preferences):
         if codec and channels:
             if channels == '2.0':
                 channel_text = "Stereo"
+            elif channels == '1.0':
+                channel_text = "Mono"
             else:
                 channel_text = f"{channels}"
             if label:

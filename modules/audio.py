@@ -263,7 +263,7 @@ def encode_single_preference(file, index, debug, languages, track_names, transfo
 
         if track_name:
             if track_name == 'Original':
-                track_name = f"{track_name}"
+                track_name = f"{track_name} ({chosen_layout})"
             elif not track_name.endswith(' (Original)'):
                 if len(audio_preferences) == 1:
                     if len(audio_preferences) == 1 and "ORIG" in audio_preferences:
@@ -277,7 +277,7 @@ def encode_single_preference(file, index, debug, languages, track_names, transfo
                 if len(audio_preferences) == 1 and "ORIG" in audio_preferences:
                     pass
             else:
-                track_name = "Original"
+                track_name = f"Original ({chosen_layout})"
         return final_out_ext, languages[index], track_name, unique_id
 
     # Unique temp wav
@@ -306,56 +306,48 @@ def encode_single_preference(file, index, debug, languages, track_names, transfo
     if codec == 'AAC':
         ffmpeg_final_opts += ['-c:a', 'aac', '-aq', '6', '-strict', '-2']
         if track_name and track_name != 'Original':
-            track_name_final = f"AAC (from {track_name})"
+            track_name_final = f"AAC {chosen_layout} (from {track_name})"
         else:
             track_name_final = f"AAC {chosen_layout}"
     elif codec == 'DTS':
         ffmpeg_final_opts += ['-c:a', 'dts', '-strict', '-2']
         if track_name and track_name != 'Original':
-            track_name_final = f"DTS (from {track_name})"
+            track_name_final = f"DTS {chosen_layout} (from {track_name})"
         else:
             track_name_final = f"DTS {chosen_layout}"
     elif codec == 'AC3':
         ffmpeg_final_opts += ['-c:a', 'ac3', '-strict', '-2']
         if track_name and track_name != 'Original':
-            track_name_final = f"Dolby Digital (from {track_name})"
+            track_name_final = f"Dolby Digital {chosen_layout} (from {track_name})"
         else:
             track_name_final = f"Dolby Digital {chosen_layout}"
     elif codec == 'EAC3':
         ffmpeg_final_opts += ['-c:a', 'eac3', '-strict', '-2']
         if track_name and track_name != 'Original':
-            track_name_final = f"Dolby Digital Plus (from {track_name})"
+            track_name_final = f"Dolby Digital Plus {chosen_layout} (from {track_name})"
         else:
             track_name_final = f"Dolby Digital Plus {chosen_layout}"
     elif codec == 'OPUS':
         ffmpeg_final_opts += ['-c:a', 'libopus', '-strict', '-2']
         if track_name and track_name != 'Original':
-            track_name_final = f"Opus (from {track_name})"
+            track_name_final = f"Opus {chosen_layout} (from {track_name})"
         else:
             track_name_final = f"Opus {chosen_layout}"
     elif codec == 'WAV':
         ffmpeg_final_opts += ['-c:a', 'pcm_s16le', '-strict', '-2']
         if track_name and track_name != 'Original':
-            track_name_final = f"PCM (from {track_name})"
+            track_name_final = f"PCM {chosen_layout} (from {track_name})"
         else:
             track_name_final = f"PCM {chosen_layout}"
     elif codec == 'FLAC':
         ffmpeg_final_opts += ['-c:a', 'flac', '-strict', '-2']
         if track_name and track_name != 'Original':
-            track_name_final = f"FLAC (from {track_name})"
+            track_name_final = f"FLAC {chosen_layout} (from {track_name})"
         else:
             track_name_final = f"FLAC {chosen_layout}"
     elif codec == 'ORIG':
         ffmpeg_final_opts += ['-c:a', 'copy']
-        if track_name:
-            if track_name == 'Original':
-                track_name_final = f"{track_name}"
-            elif not track_name.endswith(' (Original)'):
-                track_name_final = f"{track_name} (Original)"
-            else:
-                track_name_final = f"{track_name}"
-        else:
-            track_name_final = "Original"
+        track_name_final = track_name
 
     # Apply transformations
     if transformation == 'EOS':
