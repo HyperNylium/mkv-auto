@@ -816,7 +816,7 @@ def ocr_subtitle_worker(logger, memory_per_thread, debug, file, main_audio_track
 
             if result != 0:
                 final_subtitle = 'ERROR'
-                custom_print(logger, result)
+                log_debug(logger, result)
             elif not is_valid_srt(final_subtitle):
                 final_subtitle = 'ERROR'
                 output_name = 'ERROR'
