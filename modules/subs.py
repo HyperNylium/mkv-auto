@@ -814,10 +814,8 @@ def ocr_subtitle_worker(logger, memory_per_thread, debug, file, main_audio_track
             if os.path.exists(output_subtitle):
                 os.rename(output_subtitle, final_subtitle)
 
-            if result != 0:
-                final_subtitle = 'ERROR'
+            if result != 0 or not is_valid_srt(final_subtitle):
                 log_debug(logger, result)
-            elif not is_valid_srt(final_subtitle):
                 final_subtitle = 'ERROR'
                 output_name = 'ERROR'
                 forced = 'ERROR'

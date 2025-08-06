@@ -266,7 +266,7 @@ def print_with_progress(logger, current, total, header, description="Processing"
         SPINNER = None
         logger.info(f"[UTC {get_timestamp()}] [{header}] {description} {CROSS}")
         logger.debug(f"[UTC {get_timestamp()}] [{header}] {description} {CROSS}")
-        logger.color(f"{GREY}[UTC {get_timestamp()}] [{header}]{RESET} {description} {ERROR}{CROSS}{RESET}")
+        logger.color(f"{GREY}[UTC {get_timestamp()}] [{header}]{RESET} {description} {CROSS}")
 
     elif current == total and SPINNER is not None:
         final_line = (
