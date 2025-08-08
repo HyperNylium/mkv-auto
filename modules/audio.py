@@ -17,15 +17,38 @@ def extract_audio_track(debug, filename, track, language, name):
         audio_language = pycountry.languages.get(alpha_3=language).alpha_2
     except:
         audio_language = language[:-1]
-    audio_filename = f"{base}.{track}.{audio_language}.mkv"
-    command = ["mkvextract", filename, "tracks", f"{track}:{audio_filename}"]
+
+    audio_filename = f"{base}.{track}.{audio_language}.mka"
+
+    command = [
+        "ffmpeg",
+        "-i", filename,
+        "-map", f"0:{track}",
+        "-c", "copy",
+        audio_filename,
+        "-y"
+    ]
 
     if debug:
         print(f"{GREY}[UTC {get_timestamp()}] {YELLOW}{' '.join(command)}{RESET}")
 
     result = subprocess.run(command, capture_output=True, text=True)
+
     if result.returncode != 0:
-        raise Exception("Error executing mkvextract command: " + result.stderr)
+        # If copy fails, try decoding instead
+        if debug:
+            print(f"{GREY}[UTC {get_timestamp()}] {YELLOW}Copy failed, retrying with decode{RESET}")
+        command = [
+            "ffmpeg",
+            "-i", filename,
+            "-map", f"0:{track}",
+            audio_filename,
+            "-y"
+        ]
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            raise Exception("Error executing ffmpeg command: " + result.stderr)
 
     return audio_filename, 'mkv', name, language
 
