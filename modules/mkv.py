@@ -518,7 +518,7 @@ def generate_audio_tracks_in_mkv_files(logger, debug, input_files, dirpath, need
     num_workers = max(1, max_worker_threads)
     internal_threads = max(1, max_worker_threads // num_workers)
 
-    header = "FFMPEG"
+    header = "AUDIO"
     description = f"Process audio {print_multi_or_single(len(audio_format_preferences), 'format')}"
 
     if not disable_print:
@@ -1002,7 +1002,7 @@ def fetch_missing_subtitles_process(logger, debug, input_files, dirpath, total_e
     all_downloaded_subs_simple = [None] * total_files
     all_failed_downloads_simple = [None] * total_files
 
-    header = "SUBTITLES"
+    header = "SUBLIMINAL"
     description = f"Process missing subtitles"
 
     for index, input_file in enumerate(input_files):
