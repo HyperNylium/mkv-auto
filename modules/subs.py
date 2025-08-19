@@ -98,42 +98,6 @@ def get_active_xvfb_displays():
     return active_displays
 
 
-def wait_for_display(display_number, timeout=5):
-    lock_path = f"/tmp/.X{display_number}-lock"
-    start_time = time.time()
-    while True:
-        lock_exists = os.path.exists(lock_path)
-        active_displays = get_active_xvfb_displays()
-        if lock_exists and display_number in active_displays:
-            return
-        if time.time() - start_time > timeout:
-            raise TimeoutError(f"Xvfb display :{display_number} did not become ready in time.")
-        time.sleep(0.1)
-
-
-def find_available_display(start=30, end=999):
-    with x11_lock:
-        active = get_active_xvfb_displays()
-        for display in range(start, end):
-            if display not in active and display not in reserved_displays:
-                reserved_displays.add(display)
-                return display
-        raise RuntimeError("No available Xvfb displays.")
-
-
-def release_display(display_number, timeout=5):
-    lock_path = f"/tmp/.X{display_number}-lock"
-    with x11_lock:
-        reserved_displays.discard(display_number)
-
-    # Wait for the lock file to disappear
-    start_time = time.time()
-    while os.path.exists(lock_path):
-        if time.time() - start_time > timeout:
-            raise TimeoutError(f"Display :{display_number} lock file was not removed in time.")
-        time.sleep(0.1)
-
-
 def _monitor_memory_usage(xvfb_pid, cmd_pid, limit_bytes):
     """
     Monitors the total RSS (in bytes) of Xvfb and the command process.
@@ -168,41 +132,84 @@ def _monitor_memory_usage(xvfb_pid, cmd_pid, limit_bytes):
         time.sleep(1)
 
 
-def run_with_xvfb(command, memory_per_thread, display_number):
+def run_with_xvfb(command, memory_per_thread):
+    """
+    Launches Xvfb using -displayfd to auto-pick a free display, then runs `command`
+    with DISPLAY set to that value. The `display_number` parameter is ignored for
+    the display choice (kept only for signature compatibility).
+    """
     xvfb_process = None
     command_process = None
     return_code = -1
     xvfb_cmd = []
     stderr = ''
+    picked_display = None  # string like "3"
 
     try:
-        # Start Xvfb
-        xvfb_cmd = ["Xvfb", f":{display_number}", "-screen", "0", "1024x768x24",
-                    "-ac", "-nolisten", "tcp", "-nolisten", "unix"]
+        # Start Xvfb: let it choose a free display and write it to stdout
+        xvfb_cmd = [
+            "Xvfb",
+            "-displayfd", "1",               # write chosen number to stdout
+            "-screen", "0", "1024x768x24",
+            "-ac",
+            "-nolisten", "tcp",
+        ]
         xvfb_process = subprocess.Popen(
             xvfb_cmd,
-            preexec_fn=os.setsid,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            start_new_session=True,
+            stdout=subprocess.PIPE,          # we read the chosen display from here
+            stderr=subprocess.PIPE,          # capture for diagnostics
             text=True
         )
 
-        wait_for_display(display_number)
+        # Read the chosen display number from stdout with a timeout
+        deadline = time.time() + 5.0  # seconds
+        line = None
+        while time.time() < deadline and line is None:
+            rlist, _, _ = select.select([xvfb_process.stdout], [], [], 0.1)
+            if rlist:
+                line = xvfb_process.stdout.readline()
+                break
+            # abort early if Xvfb died
+            if xvfb_process.poll() is not None:
+                break
 
-        # Set the DISPLAY environment variable
+        if not line:
+            # pull stderr for context
+            try:
+                _, xvfb_err = xvfb_process.communicate(timeout=0.2)
+            except Exception:
+                xvfb_err = ''
+            raise RuntimeError(f"Xvfb did not report a display number via -displayfd. stderr: {xvfb_err.strip()}")
+
+        picked_display = line.strip()
+        if not picked_display.isdigit():
+            raise RuntimeError(f"Unexpected -displayfd output: {picked_display!r}")
+
+        # Wait for the UNIX socket to appear so clients can connect
+        sock_path = pathlib.Path(f"/tmp/.X11-unix/X{picked_display}")
+        for _ in range(100):  # up to ~5s
+            if sock_path.exists():
+                break
+            time.sleep(0.05)
+        else:
+            raise RuntimeError(f"Xvfb started but socket {sock_path} did not appear")
+
+        # Set DISPLAY for the child command
         env = os.environ.copy()
-        env['DISPLAY'] = f":{display_number}"
+        env["DISPLAY"] = f":{picked_display}"
 
-        # Start the main command
+        # Launch the main command
         command_process = subprocess.Popen(
             command,
             env=env,
-            preexec_fn=os.setsid,
+            start_new_session=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
 
+        # Monitor memory
         monitor_thread = threading.Thread(
             target=_monitor_memory_usage,
             args=(xvfb_process.pid, command_process.pid, memory_per_thread * 1024 ** 3),
@@ -217,8 +224,9 @@ def run_with_xvfb(command, memory_per_thread, display_number):
         traceback.print_exc()
         return_code = -1
         stderr = f"Exception: {str(e)}"
+
     finally:
-        # Ensure cleanup happens reliably
+        # Clean up both processes reliably
         for proc in [command_process, xvfb_process]:
             if proc and proc.poll() is None:
                 try:
@@ -230,19 +238,17 @@ def run_with_xvfb(command, memory_per_thread, display_number):
                 except Exception:
                     traceback.print_exc()
 
-        release_display(display_number)
-
-    # Return details on failure
     if return_code != 0:
         active = get_active_xvfb_displays()
         return (f"{GREEN}XVFB COMMAND:{RESET} {YELLOW}'{xvfb_cmd}'{RESET}, "
                 f"{GREEN}ACTIVE DISPLAYS:{RESET} {YELLOW}'{active}'{RESET}, "
+                f"{GREEN}PICKED DISPLAY:{RESET} {YELLOW}':{picked_display}'{RESET}, "
                 f"{GREEN}MAIN COMMAND:{RESET} {YELLOW}'{command}'{RESET}"
                 f", {RED}ERROR: '{stderr}'{RESET}")
     return return_code
 
 
-def remove_sdh_worker(logger, debug, input_file, remove_music, subtitleedit, display_number, memory_per_thread):
+def remove_sdh_worker(logger, debug, input_file, remove_music, subtitleedit, memory_per_thread):
     base_lang_id_name_forced, _, original_extension = input_file.rpartition('.')
     base_id_name_forced, _, language = base_lang_id_name_forced.rpartition('_')
     base_name_forced, _, track_id = base_id_name_forced.rpartition('_')
@@ -293,7 +299,7 @@ def remove_sdh_worker(logger, debug, input_file, remove_music, subtitleedit, dis
         os.rename(subtitle_tmp, input_file)
         replacements = replacements + current_replacements
 
-    result = run_with_xvfb(command, memory_per_thread, display_number)
+    result = run_with_xvfb(command, memory_per_thread)
     if result != 0:
         custom_print(logger, result)
     os.remove(input_file)
@@ -344,7 +350,7 @@ def remove_sdh_worker(logger, debug, input_file, remove_music, subtitleedit, dis
     return replacements
 
 
-def remove_sdh(max_threads, logger, debug, input_files, remove_music, track_names, external_sub, display_numbers, memory_per_thread):
+def remove_sdh(max_threads, logger, debug, input_files, remove_music, track_names, external_sub, memory_per_thread):
     subtitleedit = 'utilities/SubtitleEdit/SubtitleEdit.exe'
     all_replacements = []
     cleaned_track_names = []
@@ -354,7 +360,7 @@ def remove_sdh(max_threads, logger, debug, input_files, remove_music, track_name
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         tasks = [executor.submit(remove_sdh_worker, logger, debug, input_file, remove_music,
-                                 subtitleedit, display_numbers[i], memory_per_thread)
+                                 subtitleedit, memory_per_thread)
                  for i, input_file in enumerate(input_files)]
         concurrent.futures.wait(tasks)  # Wait for all tasks to complete
 
@@ -632,7 +638,7 @@ def get_output_subtitle_string(filename, track_numbers, output_filetypes, subs_l
     return subtitle_filenames
 
 
-def ocr_subtitles(logger, max_threads, memory_per_thread, debug, subtitle_files, main_audio_track_lang, display_numbers):
+def ocr_subtitles(logger, max_threads, memory_per_thread, debug, subtitle_files, main_audio_track_lang):
     subtitleedit_dir = 'utilities/SubtitleEdit'
     all_replacements = []
     keep_original_subtitles = check_config(config, 'subtitles', 'keep_original_subtitles')
@@ -647,7 +653,7 @@ def ocr_subtitles(logger, max_threads, memory_per_thread, debug, subtitle_files,
         # Submit all tasks and store futures in a dictionary with their index
         future_to_index = {
             executor.submit(ocr_subtitle_worker, logger, memory_per_thread, debug, subtitle_files[i],
-                            main_audio_track_lang, subtitleedit_dir, display_numbers[i]): i
+                            main_audio_track_lang, subtitleedit_dir): i
             for i in range(len(subtitle_files))
         }
 
@@ -734,7 +740,7 @@ def ocr_subtitles(logger, max_threads, memory_per_thread, debug, subtitle_files,
             all_track_forced, updated_sub_filetypes, all_replacements, errored_ocr, missing_subs_langs)
 
 
-def ocr_subtitle_worker(logger, memory_per_thread, debug, file, main_audio_track_lang, subtitleedit_dir, display_number):
+def ocr_subtitle_worker(logger, memory_per_thread, debug, file, main_audio_track_lang, subtitleedit_dir):
     ocr_languages = check_config(config, 'subtitles', 'ocr_languages')
     remove_sdh = check_config(config, 'subtitles', 'always_remove_sdh')
     replacements = []
@@ -780,7 +786,7 @@ def ocr_subtitle_worker(logger, memory_per_thread, debug, file, main_audio_track
             if debug:
                 print(f"{GREY}[UTC {get_timestamp()}] {YELLOW}{' '.join(command)}{RESET}")
 
-            result = run_with_xvfb(command, memory_per_thread, display_number)
+            result = run_with_xvfb(command, memory_per_thread)
 
             output_subtitle = f"{base}_{forced}_'{name_encoded}'_{track_id}_{language}.srt"
             subtitle_tmp = f"{base}_{forced}_'{name_encoded}'_{track_id}_{language}_tmp.srt"

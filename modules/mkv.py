@@ -719,17 +719,6 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
 
     max_worker_threads, memory_per_thread, max_mem_allowed = get_max_ocr_threads()
 
-    display_numbers_list = []
-    for subtitle_group in subtitle_files_list:
-        display_list = []
-        for _ in subtitle_group:
-            # Allocate two display numbers for each item
-            # to account for ASS -> SRT conversion
-            display_number_1 = find_available_display()
-            display_number_2 = find_available_display()
-            display_list.extend([display_number_1, display_number_2])
-        display_numbers_list.append(display_list)
-
     if errored_subs_bool:
         max_worker_threads = 1
         memory_per_thread = max_mem_allowed
@@ -747,7 +736,7 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
     # Use ThreadPoolExecutor to handle multithreading
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = {executor.submit(convert_to_srt_process_worker, logger, debug, input_file, dirpath, internal_threads,
-                                   sub_files[index], memory_per_thread, display_numbers_list[index]): index for index, input_file in enumerate(input_files)}
+                                   sub_files[index], memory_per_thread): index for index, input_file in enumerate(input_files)}
         for completed_count, future in enumerate(concurrent.futures.as_completed(futures), 1):
             try:
                 if not disable_print and completed_count < total_files:
@@ -831,7 +820,7 @@ def convert_to_srt_process(logger, debug, input_files, dirpath, subtitle_files_l
             all_missing_subs_langs, all_errored_subs, main_audio_track_langs_list)
 
 
-def convert_to_srt_process_worker(logger, debug, input_file, dirpath, internal_threads, subtitle_files, memory_per_thread, display_numbers):
+def convert_to_srt_process_worker(logger, debug, input_file, dirpath, internal_threads, subtitle_files, memory_per_thread):
     input_file_with_path = os.path.join(dirpath, input_file)
     subtitle_files_to_process = subtitle_files
     errored_ass_subs = []
@@ -854,7 +843,7 @@ def convert_to_srt_process_worker(logger, debug, input_file, dirpath, internal_t
     (output_subtitles, subtitles_all, updated_subtitle_languages, all_subs_track_ids,
      all_subs_track_names, all_subs_track_forced, updated_sub_filetypes,
      all_replacements, errored_ocr_subs, missing_subs_langs) = ocr_subtitles(
-        logger, internal_threads, memory_per_thread, debug, subtitle_files_to_process, main_audio_track_lang, display_numbers)
+        logger, internal_threads, memory_per_thread, debug, subtitle_files_to_process, main_audio_track_lang)
 
     sub_filetypes = updated_sub_filetypes
     errored_subs = errored_ass_subs + errored_ocr_subs
@@ -930,14 +919,6 @@ def remove_sdh_process(logger, debug, subtitle_files_to_process_list):
     internal_threads = max(1, max_worker_threads // num_workers)
     a, memory_per_thread, b = get_max_ocr_threads()
 
-    display_numbers_list = []
-    for subtitle_group in subtitle_files_to_process_list:
-        display_list = []
-        for _ in subtitle_group:
-            display_number = find_available_display()
-            display_list.append(display_number)
-        display_numbers_list.append(display_list)
-
     header = "SUBTITLES"
     description = "Remove SDH from subtitles"
 
@@ -948,9 +929,7 @@ def remove_sdh_process(logger, debug, subtitle_files_to_process_list):
     # Use ThreadPoolExecutor to handle multithreading
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = {executor.submit(remove_sdh_process_worker, logger, debug, list, internal_threads,
-                                   display_numbers_list[index], memory_per_thread): index for index, list in
-                   enumerate(subtitle_files_to_process_list)}
-
+                                   memory_per_thread): index for index, list in enumerate(subtitle_files_to_process_list)}
         for completed_count, future in enumerate(concurrent.futures.as_completed(futures), 1):
             if not disable_print:
                 print_with_progress(logger, completed_count, total_files, header=header, description=description)
@@ -976,7 +955,7 @@ def remove_sdh_process(logger, debug, subtitle_files_to_process_list):
     return all_replacements_list_count
 
 
-def remove_sdh_process_worker(logger, debug, input_subtitles, internal_threads, display_numbers, memory_per_thread):
+def remove_sdh_process_worker(logger, debug, input_subtitles, internal_threads, memory_per_thread):
     all_replacements = []
     remove_music = check_config(config, 'subtitles', 'remove_music')
     always_remove_sdh = check_config(config, 'subtitles', 'always_remove_sdh')
@@ -984,7 +963,7 @@ def remove_sdh_process_worker(logger, debug, input_subtitles, internal_threads, 
 
     if always_remove_sdh:
         a, all_replacements = remove_sdh(internal_threads, logger, debug, srt_files, remove_music, [],
-                                         False, display_numbers, memory_per_thread)
+                                         False, memory_per_thread)
     return all_replacements
 
 
