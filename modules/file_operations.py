@@ -38,7 +38,7 @@ def get_folder_size(folder_path):
 
 def extract_archives(logger, input_folder):
     header = "FILES"
-    description = "Extract archives"
+    description = "Extracting archives"
 
     for root, dirs, files in os.walk(input_folder):
         # Filter for .rar and .zip files
@@ -87,6 +87,7 @@ def extract_archives(logger, input_folder):
 
                 except Exception as e:
                     custom_print(logger, f"{RED}[ERROR]{RESET} Failed to extract {archive_file}: {e}")
+            print()
 
 
 def count_files(directory):
