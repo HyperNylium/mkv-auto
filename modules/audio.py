@@ -114,12 +114,16 @@ def parse_preferred_codecs(preferred_codec_string):
                 ch = ch.strip()
                 if c == "EOS":
                     preferences.append(('EOS', 'AC3', ch))
+                elif c == "EOS+":
+                    preferences.append(('EOS+', 'AC3', ch))
                 else:
                     preferences.append((None, c, ch))
             else:
                 val = item.upper()
                 if val == "EOS":
                     preferences.append(("EOS", "AC3", None))
+                if val == "EOS+":
+                    preferences.append(("EOS+", "AC3", None))
                 else:
                     preferences.append((None, val, None))
     return preferences
@@ -182,7 +186,7 @@ def detect_source_channels_and_layout(debug, file):
         return None, None
 
 
-def get_pan_filter(source_channels, layout):
+def get_pan_filter_eos(source_channels, layout):
     if layout in ('5.1', '5.1(side)'):
         # Channels: FL, FR, FC, LFE, BL, BR
         # Similar logic as before: boost FC, mix some FC into FL/FR, reduce surrounds.
@@ -234,6 +238,67 @@ def get_pan_filter(source_channels, layout):
     elif layout == 'Mono':
         if source_channels > 2:
             return 'pan=mono|FC=0.5*FL+0.5*FR+0.6*FC'
+        elif source_channels == 2:
+            return 'pan=mono|FC=0.7*FL+0.7*FR'
+        else:
+            return 'pan=mono|FC=0.7*FC'
+
+    else:
+        return None
+
+
+def get_pan_filter_eos_plus(source_channels, layout):
+    if layout in ('5.1', '5.1(side)'):
+        # Channels: FL, FR, FC, LFE, BL, BR
+        # Similar logic as before: boost FC, mix some FC into FL/FR, reduce surrounds.
+        return (
+            'pan=5.1|'
+            'FL=0.4*FL|'
+            'FR=0.4*FR|'
+            'FC=0.65*FC|'
+            'LFE=0.2*LFE|'
+            'BL=0.2*BL|'
+            'BR=0.2*BR'
+        )
+
+    elif layout == '7.1':
+        # Channels: FL, FR, FC, LFE, BL, BR, SL, SR
+        # Similar approach: boost FC, mix some FC into FL/FR,
+        # keep LFE as is, and reduce the volume of surrounds and sides.
+        return (
+            'pan=7.1|'
+            'FL=0.4*FL|'
+            'FR=0.4*FR|'
+            'FC=0.65*FC|'
+            'LFE=0.2*LFE|'
+            'BL=0.2*BL|'
+            'BR=0.2*BR|'
+            'SL=0.2*SL|'
+            'SR=0.2*SR'
+        )
+
+    elif layout == 'Stereo':
+        # Input might be multi-channel. We want a stereo downmix that still
+        # emphasizes FC and includes others at lower levels.
+        # If original source had more channels, this mixes them into FL/FR.
+        # For simplicity assume FL, FR, FC, BL, BR, SL, SR, LFE might exist and need mixing.
+        # If the source has fewer channels, missing ones are treated as silence by ffmpeg.
+        if source_channels > 2:
+            return (
+                'pan=stereo|'
+                'FL=0.4*FL+0.65*FC+0.2*BL+0.2*SL+0.2*LFE|'
+                'FR=0.4*FR+0.65*FC+0.2*BR+0.2*SR+0.2*LFE'
+            )
+        else:
+            return (
+                'pan=stereo|'
+                'FL=0.7*FL|'
+                'FR=0.7*FR'
+            )
+
+    elif layout == 'Mono':
+        if source_channels > 2:
+            return 'pan=mono|FC=0.4*FL+0.4*FR+0.65*FC'
         elif source_channels == 2:
             return 'pan=mono|FC=0.7*FL+0.7*FR'
         else:
@@ -312,14 +377,14 @@ def encode_single_preference(file, index, debug, languages, track_names, transfo
     decode_cmd = ["ffmpeg", "-i", file, "-c:a", "pcm_s16le", "-f", "wav"]
     # If the source is Stereo, and the transformation is EOS, decrease
     # the overall volume to make the EOS compressor not be too aggressive
-    if source_channels <= 2 and transformation == "EOS":
+    if source_channels <= 2 and transformation == "EOS" or transformation == "EOS-STRONG":
         decode_cmd += ['-af', 'volume=0.8']
     if debug:
         print(f"{GREY}[UTC {get_timestamp()}] {YELLOW}{' '.join(decode_cmd)}{RESET}")
     subprocess.run(decode_cmd + [temp_wav], capture_output=True, text=True, check=True)
 
     final_codec = codec.lower()
-    if final_codec in ('orig', 'eos'):
+    if final_codec in ('orig', 'eos', 'eos-plus'):
         final_codec = extension
 
     final_out_ext = final_codec if final_codec != 'orig' else extension
@@ -374,13 +439,12 @@ def encode_single_preference(file, index, debug, languages, track_names, transfo
         ffmpeg_final_opts += ['-c:a', 'copy']
         track_name_final = track_name
 
-    # Apply transformations
     if transformation == 'EOS':
         compand_filter = (
             'compand=attacks=0:decays=0.3:soft-knee=6:points=-110.00/-110.00|-101.11/-101.15|-93.93/-93.97|-83.52/-84.05|-74.59/-74.81|-65.18/-65.23|-52.29/-51.54|-42.14/-39.32|-34.35/-27.25|-31.43/-22.64|-27.54/-18.38|-24.29/-15.90|-20.07/-13.77|-13.58/-10.18|-5.15/-8.04|2.64/-6.96|10.76/-5.36|20.17/-4.29:gain=0'
         )
 
-        pan_filter = get_pan_filter(source_channels, chosen_layout)
+        pan_filter = get_pan_filter_eos(source_channels, chosen_layout)
 
         if pan_filter:
             eos_filter = f'[0:a]{compand_filter},{pan_filter}'
@@ -396,6 +460,27 @@ def encode_single_preference(file, index, debug, languages, track_names, transfo
             track_name_final = f"Even-Out-Sound (from {track_name})"
         else:
             track_name_final = f"Even-Out-Sound {chosen_layout_name}"
+    elif transformation == 'EOS+':
+        compand_filter = (
+            'compand=attacks=0:decays=0.3:soft-knee=6:points=-110.00/-110.00|-101.11/-101.15|-93.93/-93.97|-83.52/-84.05|-74.59/-74.81|-65.18/-65.23|-52.29/-51.54|-42.14/-39.32|-34.35/-27.25|-31.43/-22.64|-27.54/-18.38|-24.29/-15.90|-20.07/-13.77|-13.58/-10.18|-5.15/-8.04|2.64/-6.96|10.76/-5.36|20.17/-4.29:gain=0'
+        )
+
+        pan_filter = get_pan_filter_eos_plus(source_channels, chosen_layout)
+
+        if pan_filter:
+            eos_filter = f'[0:a]{compand_filter},{pan_filter}'
+        else:
+            # If no pan filter for this layout, just apply compand and limiter
+            eos_filter = f'[0:a]{compand_filter}'
+
+        ffmpeg_final_opts += ["-filter_complex", eos_filter]
+        chosen_layout_name = chosen_layout
+        if chosen_layout == "5.1(side)":
+            chosen_layout_name = "5.1"
+        if track_name and track_name != 'Original':
+            track_name_final = f"Even-Out-Sound+ (from {track_name})"
+        else:
+            track_name_final = f"Even-Out-Sound+ {chosen_layout_name}"
     else:
         if chosen_layout == '5.1':
             ffmpeg_final_opts += ['-af', 'channelmap=0|1|2|3|4|5:5.1']

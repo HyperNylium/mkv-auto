@@ -420,6 +420,7 @@ def remove_sdh_cc_text(text):
 def format_audio_preferences_print(audio_format_preferences):
     codec_label_map = {
         'EOS': 'Even-Out-Sound',
+        'EOS+': 'Even-Out-Sound+',
         'ORIG': 'Original Audio',
         'AC3': 'Dolby Digital',
         'EAC3': 'Dolby Digital Plus',
