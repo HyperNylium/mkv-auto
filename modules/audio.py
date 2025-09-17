@@ -255,7 +255,7 @@ def get_pan_filter_eos_plus(source_channels, layout):
             'pan=5.1|'
             'FL=0.4*FL|'
             'FR=0.4*FR|'
-            'FC=0.65*FC|'
+            'FC=0.6*FC|'
             'LFE=0.2*LFE|'
             'BL=0.2*BL|'
             'BR=0.2*BR'
@@ -269,7 +269,7 @@ def get_pan_filter_eos_plus(source_channels, layout):
             'pan=7.1|'
             'FL=0.4*FL|'
             'FR=0.4*FR|'
-            'FC=0.65*FC|'
+            'FC=0.6*FC|'
             'LFE=0.2*LFE|'
             'BL=0.2*BL|'
             'BR=0.2*BR|'
@@ -286,8 +286,8 @@ def get_pan_filter_eos_plus(source_channels, layout):
         if source_channels > 2:
             return (
                 'pan=stereo|'
-                'FL=0.4*FL+0.65*FC+0.2*BL+0.2*SL+0.2*LFE|'
-                'FR=0.4*FR+0.65*FC+0.2*BR+0.2*SR+0.2*LFE'
+                'FL=0.4*FL+0.6*FC+0.2*BL+0.2*SL+0.2*LFE|'
+                'FR=0.4*FR+0.6*FC+0.2*BR+0.2*SR+0.2*LFE'
             )
         else:
             return (
@@ -298,7 +298,7 @@ def get_pan_filter_eos_plus(source_channels, layout):
 
     elif layout == 'Mono':
         if source_channels > 2:
-            return 'pan=mono|FC=0.4*FL+0.4*FR+0.65*FC'
+            return 'pan=mono|FC=0.4*FL+0.4*FR+0.6*FC'
         elif source_channels == 2:
             return 'pan=mono|FC=0.7*FL+0.7*FR'
         else:
