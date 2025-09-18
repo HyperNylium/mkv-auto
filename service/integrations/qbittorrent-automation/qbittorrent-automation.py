@@ -90,23 +90,38 @@ def login():
         raise e
 
 
+def qbittorrent_request(method, endpoint, **kwargs):
+    """
+    Wrapper around session requests that retries once if session expired (401/403).
+    Preserves timeout=10 unless explicitly overridden.
+    """
+    url = f"{QBITTORRENT_URL}{endpoint}"
+    timeout = kwargs.pop("timeout", 10)
+
+    try:
+        response = session.request(method, url, timeout=timeout, **kwargs)
+
+        if response.status_code in (401, 403):
+            log.warning("🔒 Session expired or unauthorized. Attempting to re-login...")
+            login()
+            response = session.request(method, url, timeout=timeout, **kwargs)
+
+        return response
+
+    except requests.RequestException as e:
+        log.error(f"❌ Request to {endpoint} failed: {e}")
+        raise
+
+
 def get_completed_torrents():
     all_torrents = []
     try:
         for tag in TARGET_TAGS:
-            response = session.get(f"{QBITTORRENT_URL}/api/v2/torrents/info", params={
-                "filter": "completed",
-                "tag": tag
-            }, timeout=10)
-
-            if response.status_code in (401, 403):
-                log.warning("🔒 Session expired or unauthorized. Attempting to re-login...")
-                login()
-                # Retry once after re-login
-                response = session.get(f"{QBITTORRENT_URL}/api/v2/torrents/info", params={
-                    "filter": "completed",
-                    "tag": tag
-                }, timeout=10)
+            response = qbittorrent_request(
+                "get",
+                "/api/v2/torrents/info",
+                params={"filter": "completed", "tag": tag}
+            )
 
             if response.status_code != 200:
                 raise Exception(f"HTTP {response.status_code} - {response.text}")
@@ -193,10 +208,11 @@ def mark_torrent_done(torrent):
         tags_to_remove = [tag for tag in torrent_tags if tag in TARGET_TAGS]
 
         if tags_to_remove:
-            response = session.post(f"{QBITTORRENT_URL}/api/v2/torrents/removeTags", data={
-                "hashes": torrent['hash'],
-                "tags": ','.join(tags_to_remove)
-            }, timeout=10)
+            response = qbittorrent_request(
+                "post",
+                "/api/v2/torrents/removeTags",
+                data={"hashes": torrent['hash'], "tags": ','.join(tags_to_remove)}
+            )
 
             if response.status_code == 200:
                 log.info(f"✅ Removed {'tag' if len(tags_to_remove) == 1 else 'tags'} '{', '.join(tags_to_remove)}' from torrent {torrent['hash']}")
@@ -206,10 +222,11 @@ def mark_torrent_done(torrent):
             log.info(f"ℹ️ No matching tags to remove for torrent {torrent['hash']}")
 
         # Add done tag
-        response = session.post(f"{QBITTORRENT_URL}/api/v2/torrents/addTags", data={
-            "hashes": torrent['hash'],
-            "tags": DONE_TAG
-        }, timeout=10)
+        response = qbittorrent_request(
+            "post",
+            "/api/v2/torrents/addTags",
+            data={"hashes": torrent['hash'], "tags": DONE_TAG}
+        )
 
         if response.status_code == 200:
             log.info(f"✅ Added tag '{DONE_TAG}' to torrent {torrent['hash']}\n")
@@ -226,10 +243,11 @@ def mark_torrent_failed(torrent):
         tags_to_remove = [tag for tag in torrent_tags if tag in TARGET_TAGS]
 
         if tags_to_remove:
-            response = session.post(f"{QBITTORRENT_URL}/api/v2/torrents/removeTags", data={
-                "hashes": torrent['hash'],
-                "tags": ','.join(tags_to_remove)
-            }, timeout=10)
+            response = qbittorrent_request(
+                "post",
+                "/api/v2/torrents/removeTags",
+                data={"hashes": torrent['hash'], "tags": ','.join(tags_to_remove)}
+            )
 
             if response.status_code == 200:
                 log.info(f"✅ Removed {'tag' if len(tags_to_remove) == 1 else 'tags'} '{', '.join(tags_to_remove)}' from torrent {torrent['hash']}")
@@ -238,11 +256,12 @@ def mark_torrent_failed(torrent):
         else:
             log.info(f"ℹ️ No matching tags to remove for torrent {torrent['hash']}")
 
-        # Add done tag
-        response = session.post(f"{QBITTORRENT_URL}/api/v2/torrents/addTags", data={
-            "hashes": torrent['hash'],
-            "tags": "✘"
-        }, timeout=10)
+        # Add failed tag
+        response = qbittorrent_request(
+            "post",
+            "/api/v2/torrents/addTags",
+            data={"hashes": torrent['hash'], "tags": "✘"}
+        )
 
         if response.status_code == 200:
             log.info(f"✅ Added tag '✘' to torrent {torrent['hash']}\n")
