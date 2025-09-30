@@ -87,7 +87,7 @@ def extract_archives(logger, input_folder):
 
                 except Exception as e:
                     custom_print(logger, f"{RED}[ERROR]{RESET} Failed to extract {archive_file}: {e}")
-            print()
+    print()
 
 
 def count_files(directory):
