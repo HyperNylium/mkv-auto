@@ -40,53 +40,69 @@ def extract_archives(logger, input_folder):
     header = "FILES"
     description = "Extracting archives"
 
-    for root, dirs, files in os.walk(input_folder):
-        # Filter for .rar and .zip files
-        archive_files = [f for f in files if f.endswith('.rar') or f.endswith('.zip')]
+    archives = []
+    for root, _, files in os.walk(input_folder):
+        for f in files:
+            if f.lower().endswith(('.rar', '.zip')):
+                archives.append((root, f))
 
-        if archive_files:
-            completed_count = 0
-            print_with_progress(logger, completed_count, len(archive_files), header=header, description=description)
-            for archive_file in archive_files:
-                archive_path = os.path.join(root, archive_file)
-                temp_extract_path = os.path.join(root, "temp_extracted")
+    total = len(archives)
+    completed = 0
 
-                try:
-                    os.makedirs(temp_extract_path, exist_ok=True)
-                    if archive_file.endswith('.rar'):
-                        # Extract RAR file
-                        with rarfile.RarFile(archive_path) as rf:
-                            rf.extractall(temp_extract_path)
-                    elif archive_file.endswith('.zip'):
-                        # Extract ZIP file
-                        with zipfile.ZipFile(archive_path, 'r') as zf:
-                            zf.extractall(temp_extract_path)
+    if total == 0:
+        return
 
-                    # Move extracted files to root of input_folder
-                    for extracted_root, extracted_dirs, extracted_files in os.walk(temp_extract_path):
-                        for file in extracted_files:
-                            shutil.move(os.path.join(extracted_root, file), input_folder)
-                        for dir in extracted_dirs:
-                            shutil.move(os.path.join(extracted_root, dir), input_folder)
+    print_with_progress(logger, completed, total, header=header, description=description)
 
-                    # Remove temporary extraction directory
-                    shutil.rmtree(temp_extract_path)
+    for root, archive_file in archives:
+        archive_path = os.path.join(root, archive_file)
+        temp_extract_path = os.path.join(root, f".tmp_extract_{uuid4().hex}")
 
-                    # Remove the archive file after extraction
-                    os.remove(archive_path)
+        try:
+            os.makedirs(temp_extract_path, exist_ok=True)
 
-                    # Remove all sub-rar files like .r00, .r01, etc.
-                    sub_rar_files = [f for f in files if f.startswith(archive_file.split('.rar')[0]) and f.endswith(
-                        tuple(f'.r{i:02d}' for i in range(100)))]
-                    for sub_rar_file in sub_rar_files:
-                        os.remove(os.path.join(root, sub_rar_file))
+            if archive_file.lower().endswith('.rar'):
+                with rarfile.RarFile(archive_path) as rf:
+                    rf.extractall(temp_extract_path)
+            else:
+                with zipfile.ZipFile(archive_path, 'r') as zf:
+                    zf.extractall(temp_extract_path)
 
-                    completed_count += 1
-                    print_with_progress(logger, completed_count, len(archive_files), header=header,
-                                        description=description)
+            for entry in os.scandir(temp_extract_path):
+                src = entry.path
+                dst = os.path.join(input_folder, entry.name)
+                if os.path.exists(dst):
+                    base, ext = os.path.splitext(entry.name)
+                    i = 1
+                    while os.path.exists(os.path.join(input_folder, f"{base} ({i}){ext}")):
+                        i += 1
+                    dst = os.path.join(input_folder, f"{base} ({i}){ext}")
+                shutil.move(src, dst)
 
-                except Exception as e:
-                    custom_print(logger, f"{RED}[ERROR]{RESET} Failed to extract {archive_file}: {e}")
+            shutil.rmtree(temp_extract_path, ignore_errors=True)
+            if os.path.exists(archive_path):
+                os.remove(archive_path)
+
+            if archive_file.lower().endswith('.rar'):
+                prefix = os.path.splitext(archive_file)[0]
+                for i in range(100):
+                    part_name = f"{prefix}.r{i:02d}"
+                    part_path = os.path.join(root, part_name)
+                    if os.path.exists(part_path):
+                        try:
+                            os.remove(part_path)
+                        except Exception:
+                            pass
+
+            completed += 1
+            print_with_progress(logger, completed, total, header=header, description=description)
+
+        except Exception as e:
+            try:
+                shutil.rmtree(temp_extract_path, ignore_errors=True)
+            except Exception:
+                pass
+            custom_print(logger, f"{RED}[ERROR]{RESET} Failed to extract {archive_file}: {e}")
 
 
 def count_files(directory):
