@@ -802,6 +802,7 @@ def ocr_subtitle_worker(logger, memory_per_thread, debug, file, main_audio_track
             if forced == '1':
                 output_name = f'non-{main_audio_track_lang} dialogue'
                 output_name_b64 = base64.b64encode(output_name.encode("utf-8")).decode("utf-8")
+                original_name_b64 = output_name_b64
                 original_subtitle = f"{base}_0_'{original_name_b64}'_{track_id}_{language}.{original_extension}"
                 final_subtitle = f"{base}_{forced}_'{output_name_b64}'_{track_id}_{language}.srt"
             else:

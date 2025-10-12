@@ -452,7 +452,7 @@ def trim_audio_in_mkv_files(logger, debug, input_files, dirpath):
                     temp_filename = new_base + extension
                     if os.path.exists(temp_filename):
                         os.remove(temp_filename)
-                raise CorruptedFile
+                raise CorruptedFile(original_exception=e)
 
     return mkv_files_need_processing_audio, mkv_files_need_processing_subs, all_missing_subs_langs
 
@@ -1655,9 +1655,9 @@ def strip_audio_tracks_in_mkv(debug, filename, audio_tracks, default_audio_track
         print(f"{RESET}")
 
     result = subprocess.run(command, capture_output=True, text=True)
-    if result.returncode != 0:
+    if result.returncode not in (0, 1):
         os.remove(temp_filename)
-    result.check_returncode()
+        result.check_returncode()
 
     os.remove(filename)
     shutil.move(temp_filename, filename)

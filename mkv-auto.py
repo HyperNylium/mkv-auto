@@ -314,6 +314,8 @@ def mkv_auto(args):
             partial_str = 'copied' if not move_files else 'moved'
             custom_print_no_newline(logger, f"{RED}[ERROR]{RESET} Partially {partial_str} "
                                             f"files detected. Retrying...")
+            if e.original_exception:
+                log_debug(logger, f"{e.original_exception}")
             if move_files and filenames_mkv_only:
                 for file in filenames_mkv_only:
                     try:
