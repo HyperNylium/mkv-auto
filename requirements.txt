@@ -16,7 +16,7 @@ asstosrt==0.1.6
 
 # For automatically resyncing SRT subtitles to the audio stream
 # https://pypi.org/project/ffsubsync/
-ffsubsync==0.4.29
+ffsubsync==0.4.30
 
 # For removing all-uppercase letters in improperly formatted SDH subtitles
 # https://pypi.org/project/pysrt/
@@ -32,15 +32,15 @@ pycountry==24.6.1
 
 # For downloading external subtitles
 # https://pypi.org/project/subliminal/
-subliminal==2.3.2
+subliminal==2.4.0
 
 # For calculating max OCR threads based on available system RAM
 # https://pypi.org/project/psutil/
-psutil==7.0.0
+psutil==7.1.0
 
 # For sanitizing filenames
 # https://pypi.org/project/pathvalidate/
-pathvalidate==3.2.3
+pathvalidate==3.3.1
 
 # For fuzzy matching titles from Movies/TV
 # https://pypi.org/project/thefuzz/

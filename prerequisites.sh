@@ -21,8 +21,8 @@ $SUDO apt-get install tesseract-ocr -y
 # Install all OCR language packs excluding 'ocr-script' and 'old' packages
 $SUDO apt-cache search tesseract-ocr | grep -v 'ocr-script' | grep -v 'old' | awk '{print $1}' | xargs $SUDO apt install -y
 
-# Installing python3.10 and python3-dev (required for ffsubsync to install via pip)
-$SUDO apt-get install python3.10 python3-dev -y
+# Installing python3.12 and python3-dev (required for ffsubsync to install via pip)
+$SUDO apt-get install python3.12 python3-dev -y
 
 # Installing and updating python3-pip
 $SUDO apt-get install python3-pip -y
@@ -30,7 +30,7 @@ python3 -m pip install --user --upgrade pip
 
 # Installing python3 venv
 python3 -m pip install --user virtualenv
-$SUDO apt install python3.10-venv -y
+$SUDO apt install python3.12-venv -y
 
 # Installing MKVToolNix
 $SUDO apt-get install mkvtoolnix -y
@@ -67,7 +67,7 @@ $SUDO apt-get install -y \
   curl libssl-dev clang
 
 # Build HandBrakeCLI from source
-handbrake_version="1.9.2"
+handbrake_version="1.10.2"
 current_dir=$(pwd)
 wget -O HandBrake.tar.bz2 https://github.com/HandBrake/HandBrake/releases/download/${handbrake_version}/HandBrake-${handbrake_version}-source.tar.bz2
 tar -xvjf HandBrake.tar.bz2
