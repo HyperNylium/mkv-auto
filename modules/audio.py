@@ -682,7 +682,7 @@ def get_wanted_audio_tracks(debug, file_info, pref_audio_langs, remove_commentar
 
             if track_language in pref_audio_langs:
                 add_track = False
-                if 'original' in track_name.lower():
+                if track_name.endswith('(Original)') or track_name == "Original":
                     original_audio_track_ids.append(track["id"])
                     original_audio_track_names.append(track_name)
                     original_audio_track_languages.append(track_language)
@@ -718,7 +718,7 @@ def get_wanted_audio_tracks(debug, file_info, pref_audio_langs, remove_commentar
 
             elif track_language not in pref_audio_langs and not audio_track_ids:
                 add_track = False
-                if 'original' in track_name.lower():
+                if track_name.endswith('(Original)') or track_name == "Original":
                     unmatched_original_audio_track_ids.append(track["id"])
                     unmatched_original_audio_track_names.append(track_name)
                     unmatched_original_audio_track_languages.append(track_language)
@@ -825,8 +825,8 @@ def get_wanted_audio_tracks(debug, file_info, pref_audio_langs, remove_commentar
     elif len(all_audio_track_ids) != 0 and len(all_audio_track_ids) == total_audio_tracks and only_orig_pref:
         needs_processing = False
 
-    # If original tracks are found, only keep those if nothing else was selected
-    if (original_audio_track_ids or unmatched_original_audio_track_ids) and not all_audio_track_ids:
+    # If original tracks are found, only keep those
+    if original_audio_track_ids or unmatched_original_audio_track_ids:
         needs_processing = True
         if unmatched_original_audio_track_ids and not original_audio_track_ids:
             all_audio_track_ids = unmatched_original_audio_track_ids
