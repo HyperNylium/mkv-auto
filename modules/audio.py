@@ -122,7 +122,7 @@ def parse_preferred_codecs(preferred_codec_string):
                 val = item.upper()
                 if val == "EOS":
                     preferences.append(("EOS", "AC3", None))
-                if val == "EOS+":
+                elif val == "EOS+":
                     preferences.append(("EOS+", "AC3", None))
                 else:
                     preferences.append((None, val, None))
@@ -253,12 +253,12 @@ def get_pan_filter_eos_plus(source_channels, layout):
         # Similar logic as before: boost FC, mix some FC into FL/FR, reduce surrounds.
         return (
             'pan=5.1|'
-            'FL=0.4*FL|'
-            'FR=0.4*FR|'
-            'FC=0.6*FC|'
-            'LFE=0.2*LFE|'
-            'BL=0.2*BL|'
-            'BR=0.2*BR'
+            'FL=0.3*FL|'
+            'FR=0.3*FR|'
+            'FC=0.7*FC|'
+            'LFE=0.1*LFE|'
+            'BL=0.1*BL|'
+            'BR=0.1*BR'
         )
 
     elif layout == '7.1':
@@ -267,14 +267,14 @@ def get_pan_filter_eos_plus(source_channels, layout):
         # keep LFE as is, and reduce the volume of surrounds and sides.
         return (
             'pan=7.1|'
-            'FL=0.4*FL|'
-            'FR=0.4*FR|'
-            'FC=0.6*FC|'
-            'LFE=0.2*LFE|'
-            'BL=0.2*BL|'
-            'BR=0.2*BR|'
-            'SL=0.2*SL|'
-            'SR=0.2*SR'
+            'FL=0.3*FL|'
+            'FR=0.3*FR|'
+            'FC=0.7*FC|'
+            'LFE=0.1*LFE|'
+            'BL=0.1*BL|'
+            'BR=0.1*BR|'
+            'SL=0.1*SL|'
+            'SR=0.1*SR'
         )
 
     elif layout == 'Stereo':
@@ -286,8 +286,8 @@ def get_pan_filter_eos_plus(source_channels, layout):
         if source_channels > 2:
             return (
                 'pan=stereo|'
-                'FL=0.4*FL+0.6*FC+0.2*BL+0.2*SL+0.2*LFE|'
-                'FR=0.4*FR+0.6*FC+0.2*BR+0.2*SR+0.2*LFE'
+                'FL=0.3*FL+0.7*FC+0.1*BL+0.1*SL+0.1*LFE|'
+                'FR=0.3*FR+0.7*FC+0.1*BR+0.1*SR+0.1*LFE'
             )
         else:
             return (
@@ -298,7 +298,7 @@ def get_pan_filter_eos_plus(source_channels, layout):
 
     elif layout == 'Mono':
         if source_channels > 2:
-            return 'pan=mono|FC=0.4*FL+0.4*FR+0.6*FC'
+            return 'pan=mono|FC=0.3*FL+0.3*FR+0.7*FC'
         elif source_channels == 2:
             return 'pan=mono|FC=0.7*FL+0.7*FR'
         else:
@@ -377,14 +377,14 @@ def encode_single_preference(file, index, debug, languages, track_names, transfo
     decode_cmd = ["ffmpeg", "-i", file, "-c:a", "pcm_s16le", "-f", "wav"]
     # If the source is Stereo, and the transformation is EOS, decrease
     # the overall volume to make the EOS compressor not be too aggressive
-    if source_channels <= 2 and transformation == "EOS" or transformation == "EOS-STRONG":
+    if source_channels <= 2 and transformation in ("EOS", "EOS+"):
         decode_cmd += ['-af', 'volume=0.8']
     if debug:
         print(f"{GREY}[UTC {get_timestamp()}] {YELLOW}{' '.join(decode_cmd)}{RESET}")
     subprocess.run(decode_cmd + [temp_wav], capture_output=True, text=True, check=True)
 
     final_codec = codec.lower()
-    if final_codec in ('orig', 'eos', 'eos-plus'):
+    if final_codec in ('orig', 'eos', 'eos+'):
         final_codec = extension
 
     final_out_ext = final_codec if final_codec != 'orig' else extension

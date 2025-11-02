@@ -1051,6 +1051,9 @@ def get_tv_episode_metadata(logger, debug, input_str):
             elif last_word == 'UK':
                 recognized_code = 'GB'
                 search_show_name = parts[0]
+            elif last_word == 'NO':
+                recognized_code = 'NO'
+                search_show_name = parts[0]
 
         if debug:
             custom_print(logger, f"Will search for show: {YELLOW}'{search_show_name}'{RESET}")
