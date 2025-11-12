@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       label:
-        description: 'Image tag (e.g. v1.2.3 or 1.2.3)'
+        description: 'Image tag (e.g. 1.2.3)'
         required: true
         type: string
       latest:
